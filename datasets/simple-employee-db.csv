@@ -1,0 +1,9 @@
+eid,name,gender,department,age,salary,working_years,birth_place
+E011,Anda,female,developer,39,64200.00,4,Bangkok
+E012,Bordin,male,developer,25,48700.00,2,Phuket
+E013,Chantana,female,developer,29,45500.00,3,Chonburi
+E014,Donlaya,female,marketing,39,72600.00,8,Chonburi
+E015,Ekkasit,male,marketing,37,80500.00,7,Suphanburi
+E016,Fundee,female,support,35,56600.00,3,Phuket
+E017,Gitiwit,male,support,26,42400.00,2,Suphanburi
+E018,Harit,male,devops,32,67700.00,5,Bangkok

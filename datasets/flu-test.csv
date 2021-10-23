@@ -1,0 +1,8 @@
+case,temp,headache,nausea,flu
+1,high,YES,no,YES
+2,very_high,YES,YES,YES
+3,normal,no,no,no
+4,high,YES,YES,YES
+5,high,no,YES,no
+6,normal,YES,no,no
+7,normal,no,YES,no
