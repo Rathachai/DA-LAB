@@ -2,6 +2,8 @@
 
 อ้างอิง : รัฐชัย ชาวอุทัย (2565). การวิเคราะห์ข้อมูล: ศูนย์จำหน่ายตำราคณะวิศวกรรมศาสตร์ สจล.
 
+เว็บไซต์ผู้เขียน : [https://rathachai.creatier.pro](https://rathachai.creatier.pro)
+
 ## เนื้อหา
 * ภาพสี่สี [click here](https://docs.google.com/presentation/d/1Hku6vfu01sQvMvPFhb0knapoE-CbJBrW2qP30Ry_dOc/edit?usp=sharing)
 
