@@ -16,6 +16,7 @@ ISBN : 978-616-338-169-9
 
 ## เนื้อหา
 * ภาพสี่สี [click here](https://docs.google.com/presentation/d/1Hku6vfu01sQvMvPFhb0knapoE-CbJBrW2qP30Ry_dOc/edit?usp=sharing)
+* ตัวอย่างหนังสือ [click here](https://github.com/Rathachai/DA-LAB/blob/gh-pages/materials/DA-Book-for-Preview.pdf)
 
 ## การให้คำเสนอแนะ
 * กรุณากรอกฟอร์ม [click here](https://forms.gle/9qvdipJV9RR1b1EM8)
