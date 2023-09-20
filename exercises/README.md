@@ -11,7 +11,9 @@
 * ชุดข้อมูลการจำแนกประเภทยา
   * https://www.kaggle.com/datasets/prathamtripathi/drug-classification![image](https://github.com/Rathachai/DA-LAB/assets/501835/84919277-007f-433a-b911-7bcbae928d00)
 
-
+## Cluster Analytics
+* ชุดข้อมูลพฤติกรรมลูกค้าในห้างสรรพสินค้า
+  * https://www.kaggle.com/datasets/vjchoudhary7/customer-segmentation-tutorial-in-python
 
 ## Recommender System
 
