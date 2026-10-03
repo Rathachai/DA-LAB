@@ -1,113 +1,117 @@
-# DA-LAB · Interactive Learning Labs
+# DA-LAB · Linear Models for Engineers
 
-A collection of browser-based, zero-install simulators that teach core data-analytics and machine-learning concepts through hands-on experimentation. Every lab is a single self-contained HTML file (HTML + CSS + JavaScript), is responsive on desktop and mobile, and is written for engineering students who are new to data science.
+A course in five topics for engineering students who are new to data science. Each topic has a **lecture** (a short textbook chapter), interactive **labs** that run in the browser with no installation, and **data** (CSV files) for further work in Google Colab or Jupyter.
 
 **Live site:** <https://rathachai.github.io/DA-LAB/learnings/linear/>
 
 ---
 
-## Linear Models
+## 1 · Introduction to Linear Models
 
-| Lab | Topic | Open |
-|-----|-------|------|
-| **LM101** | Linear regression fundamentals | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm101.html) |
-| **CORR101** | Pearson correlation | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/corr101.html) |
-| **LM201** | Feature selection for linear models | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm201.html) |
-| **LM301** | Train–test split | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm301.html) |
-| **LM302** | Train–test split with feature selection | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm302.html) |
-| **LM401** | Time series with sliding windows | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm401.html) |
-| **LM501** | Predictive maintenance: RUL from sensors, split by machine | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm501.html) |
-| **LM502** | Predictive maintenance: degradation curve & threshold | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm502.html) |
-| **LM503** | Predictive maintenance: early warning with residuals | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm503.html) |
-| **LM504** | Predictive maintenance: the cost of wrong predictions | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm504.html) |
+*Data tables (`id`, `X`, `y`), the line $\hat y = mx + c$, residuals, error metrics, gradient descent and hyperparameters, the mathematics of least squares.*
 
-### LM101 · Linear Regression Simulator
-Build intuition for how a straight line is fitted to data.
-- Add random linear data or paint points freehand with an adjustable spray tool.
-- Drag the model line (slope and intercept) and see the residuals update live.
-- Train with gradient descent: step-by-step or continuous play, adjustable learning rate, random model restarts.
-- Track the fitted equation `y = mx + c`, MAE, RMSE, MAPE, MSE and the loss curve.
-
-### CORR101 · Pearson Correlation Demo
-Explore what the correlation coefficient *r* does — and does not — measure.
-- Choose from preset patterns (positive, negative, none, perfect line, circle, U-shape, sine wave, clusters, single outlier) or spray your own.
-- Watch *r*, *r²*, covariance, means and standard deviations respond instantly, with the correlation line drawn on the scatter plot.
-- Learn the limits of *r*: non-linear relationships, outliers and clustering effects.
-
-### LM201 · Feature Selection for Linear Models
-Decide which variables belong in a multiple linear regression.
-- Explore a 100-sample table (`id`, `x1`–`x7`, `y`) and click any column to inspect its relationship with `y`.
-- Tick columns to include as features, and optionally apply a log transform to linearize curved relationships.
-- Train a multi-feature model with gradient descent (or solve it directly) and read the equation `β₀ + β₁x₁ + …`.
-- Compare candidate models side by side using MAE, RMSE, MAPE, R² and adjusted R², alongside the loss curve and a *y* vs. *ŷ* plot.
-
-### LM301 · Train–Test Split
-See why a model must be judged on data it has never seen.
-- Split points into train and test sets at any ratio from 10 % to 90 %, and re-shuffle the assignment at will.
-- Fit on the training set only; compare train vs. test MAE, RMSE, MAPE, MSE and R².
-- Toggle train/test visibility and run a 50-split experiment to see how the split ratio affects stability.
-
-### LM302 · Train–Test Split with Feature Selection
-Combine feature selection with honest, held-out evaluation.
-- The LM201 workflow plus an adjustable 10–90 % train/test split of the 100-sample table.
-- Compare train and test MAE and MAPE across feature sets and split ratios to spot overfitting.
-- Toggle train/test points and residuals on the charts; test points are shown as diamonds.
-
-### LM401 · Time Series with Linear Models
-Turn a time series into a supervised-learning problem and forecast it with a linear (autoregressive) model.
-- Pick from ten 200-point patterns (sine, trend, trend + season, random walk, AR(1), level shifts, damped wave, exponential, sawtooth, white noise) and set the noise level.
-- Click the line and drag it up or down — neighbouring points follow smoothly, fading out with distance.
-- Choose a sliding-window size (up to 10) and inspect the resulting table of `x₁ … x_w → y`, sliding by one step.
-- Split chronologically or randomly (10–90 %), then train with gradient descent or solve directly.
-- Compare train and test errors (MAE, RMSE, MAPE, MSE, R²) against a naive baseline. In a chronological split the test period is evaluated two ways: **chronological** (each prediction built from the model's earlier predictions) and **using actual data** (one step ahead).
-- Read the chart: train predictions (red, 1 px), test predictions using actual data (red, 2 px) and the chronological multi-step test forecast (red dashed, 2 px).
-
-### LM501 · Remaining Useful Life (RUL) from Sensors
-Predict how many hours a machine has left from seven sensor readings.
-- Explore a 120-row table (12 machines × 10 snapshots) with `id`, `machine`, sensors `s1`–`s7` and the target `y` = RUL; some sensors are strong, one is pure noise, one is U-shaped and one is exponential (use the per-column log option).
-- Select features, train with gradient descent or solve directly, and compare train and test MAE and MAPE across feature sets.
-- Learn the key lesson on splitting: **by machine** (correct) versus **by row** (leaky), with a leakage demo that runs 30 random splits of each mode.
-
-### LM502 · Degradation Curve & Maintenance Threshold
-Predict when a machine should be repaired from its declining health index.
-- Choose a degradation pattern (linear, accelerating, fast early wear, late-onset fault, step shocks), set the sensor noise, and generate a new machine.
-- Scrub **now** along the timeline: the model sees only the readings up to that moment.
-- Fit a trend line on a recent window (gradient descent or exact solution), extend it to the maintenance threshold θ and to failure, and read the predicted remaining useful life (RUL).
-- Track RUL predictions over time against the truth, and see whether a straight line is too optimistic or too pessimistic.
-- Set repair, breakdown and wasted-life costs, and explore how the choice of θ trades early repairs against breakdowns.
-
-### LM503 · Early Warning with a Sliding Window
-Detect the start of a fault from the residuals of a linear autoregressive model.
-- Train a sliding-window model (window up to 10) on the healthy start of a vibration signal; the residual (actual − predicted) becomes the health signal.
-- Raise an alarm when the residual exceeds k·σ for m consecutive points; review detection delay, false alarms and the k trade-off table.
-- Choose fault types (drift, level shift, growing variance, bearing oscillation) or inject your own anomaly by dragging the signal.
-
-### LM504 · The Cost of Wrong Predictions
-See why the model with the lowest error is not always the best decision-maker.
-- Simulate a 200-machine fleet with adjustable prediction noise and bias, and spray in extra machines.
-- Set a repair threshold, inspection interval and the costs of repairs, wasted life and breakdowns; see outcomes and the cost-versus-threshold curve.
-- Save scenarios to compare the lowest-RMSE model with the lowest-cost one.
+* **Lecture** — [Chapter 1 · Introduction to Linear Models](en-01-linear-intro.md)
+* **Labs**
+  * [LM101 · Linear Regression Simulator](https://rathachai.github.io/DA-LAB/learnings/linear/lm101.html) — spray points, drag the line, watch residuals, train with gradient descent
+* **Data**
+  * [lm101_points.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm101_points.csv) — 40 noisy points · `id, x, y`
 
 ---
 
-## Textbook Chapters
+## 2 · Correlation and Feature Selection
 
-Each chapter explains the theory and links to the matching interactive labs.
+*Pearson correlation, multiple regression, screening features, log transform, adjusted R², standardisation.*
 
-| Chapter | Topic | Labs |
-|---------|-------|------|
-| [01 · Introduction to Linear Models](en-01-linear-intro.md) | regression, residuals, error metrics, gradient descent, mathematics of least squares | LM101 |
-| [02 · Correlation and Feature Selection](en-02-feature-selection.md) | Pearson correlation, multiple regression, screening, log transform, adjusted R² | CORR101, LM201 |
-| [03 · Machine Learning and Train–Test Split](en-03-machine-learning.md) | generalisation, overfitting, splitting, leakage, repeated splits | LM301, LM302 |
-| [04 · Time Series](en-04-time-series.md) | sliding windows, AR models, chronological split, recursive forecasting | LM401 |
-| [05 · Predictive Maintenance](en-05-predictive-maintainance.md) | RUL, degradation thresholds, residual alarms, cost-based decisions | LM501–LM504 |
+* **Lecture** — [Chapter 2 · Correlation and Feature Selection](en-02-feature-selection.md)
+* **Labs**
+  * [CORR101 · Pearson Correlation Demo](https://rathachai.github.io/DA-LAB/learnings/linear/corr101.html) — preset or sprayed patterns; watch *r*, *r²* and the correlation line
+  * [LM201 · Feature Selection for Linear Models](https://rathachai.github.io/DA-LAB/learnings/linear/lm201.html) — choose columns, apply `log`, compare models
+* **Data**
+  * [corr101_patterns.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/corr101_patterns.csv) — nine scatter patterns · `pattern, id, x, y` · 900 rows
+  * [lm201_data.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm201_data.csv) — 100 samples · `id, x1…x7, y` (`x3` U-shaped, `x4` noise, `x5` exponential)
+
+---
+
+## 3 · Machine Learning and Train–Test Split
+
+*Supervised learning, generalisation, overfitting, train and test sets, split ratio, data leakage, repeated splits.*
+
+* **Lecture** — [Chapter 3 · Machine Learning and Train–Test Split](en-03-machine-learning.md)
+* **Labs**
+  * [LM301 · Train–Test Split](https://rathachai.github.io/DA-LAB/learnings/linear/lm301.html) — split points 10–90 %, compare train and test error, run 50 random splits
+  * [LM302 · Train–Test Split with Feature Selection](https://rathachai.github.io/DA-LAB/learnings/linear/lm302.html) — the LM201 table with an adjustable split
+* **Data**
+  * [lm301_points.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm301_points.csv) — 40 points with a 70 / 30 split · `id, x, y, split`
+  * [lm302_data.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm302_data.csv) — the LM201 table plus `split`
+
+---
+
+## 4 · Time Series
+
+*Trend, seasonality and noise, sliding windows, autoregressive models, chronological split, one-step vs. multi-step forecasts.*
+
+* **Lecture** — [Chapter 4 · Time Series with Linear Models](en-04-time-series.md)
+* **Labs**
+  * [LM401 · Time Series with Linear Models](https://rathachai.github.io/DA-LAB/learnings/linear/lm401.html) — ten 200-point patterns, drag the curve, window table, train/test forecast
+* **Data**
+  * [lm401_timeseries.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm401_timeseries.csv) — ten series of 200 points · `t` + one column per pattern
+  * [lm401_window_w5_trend_season.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm401_window_w5_trend_season.csv) — sliding-window table (window 5) · `t, x1…x5, y, split`
+
+---
+
+## 5 · Predictive Maintenance
+
+*Remaining useful life (RUL), splitting by machine, degradation thresholds, residual alarms, cost-based decisions.*
+
+* **Lecture** — [Chapter 5 · Predictive Maintenance](en-05-predictive-maintainance.md)
+* **Labs**
+  * [LM501 · Remaining Useful Life from Sensors](https://rathachai.github.io/DA-LAB/learnings/linear/lm501.html) — 60 machines, split by machine vs. by row
+  * [LM502 · Degradation Curve and Maintenance Threshold](https://rathachai.github.io/DA-LAB/learnings/linear/lm502.html) — extrapolate a trend to a threshold and weigh the cost
+  * [LM503 · Early Warning with a Sliding Window](https://rathachai.github.io/DA-LAB/learnings/linear/lm503.html) — detect faults from residuals
+  * [LM504 · The Cost of Wrong Predictions](https://rathachai.github.io/DA-LAB/learnings/linear/lm504.html) — why the lowest-error model is not always the cheapest
+* **Data**
+  * [lm501_data.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm501_data.csv) — 2,400 snapshots of 60 machines · `id, machine, s1…s7, y` (RUL, hours)
+  * [lm502_degradation.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm502_degradation.csv) — five degradation patterns · `pattern, t, health_true, health_sensor, failure_time`
+  * [lm503_signals.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm503_signals.csv) — five fault scenarios · `scenario, t, signal, is_fault`
+  * [lm504_fleet.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm504_fleet.csv) — 200 machines, actual and predicted RUL · `machine_id, actual_rul, predicted_*`
+
+---
+
+## About the Data
+
+`lm201_data.csv`, `lm302_data.csv` and `lm501_data.csv` are exact copies of the data shown in the labs (the labs use a fixed random seed). The other files are example datasets generated with the same patterns and noise levels as their labs; the labs themselves create fresh random data each time, so the numbers differ.
+
+### Using a dataset in Google Colab
+
+```python
+import pandas as pd
+
+url = "https://rathachai.github.io/DA-LAB/learnings/linear/data/lm201_data.csv"
+df = pd.read_csv(url)
+
+X = df[["x1", "x2", "x6", "x7"]]   # features
+y = df["y"]                       # target
+
+from sklearn.linear_model import LinearRegression
+model = LinearRegression().fit(X, y)
+print(model.intercept_, model.coef_)
+```
+
+```python
+# Time series: build the sliding-window table yourself (LM401)
+s = pd.read_csv("https://rathachai.github.io/DA-LAB/learnings/linear/data/lm401_timeseries.csv")["trend_season"]
+w = 5
+window = pd.DataFrame({f"x{j}": s.shift(w - j + 1) for j in range(1, w + 1)})
+window["y"] = s
+window = window.dropna()
+```
 
 ---
 
 ## Using the Labs
 
-- Open any link above in a modern browser — no installation, accounts or server required.
-- To run locally, clone the repository and open the `.html` files directly.
+* Open any lab link in a modern browser — no installation, account or server required; every lab is one self-contained HTML file, responsive on desktop and mobile.
+* To run locally, clone the repository and open the `.html` files directly.
 
 ## Repository Layout
 
@@ -115,21 +119,14 @@ Each chapter explains the theory and links to the matching interactive labs.
 learnings/
 └── linear/
     ├── README.md
-    ├── en-01-linear-intro.md
-    ├── en-02-feature-selection.md
-    ├── en-03-machine-learning.md
-    ├── en-04-time-series.md
-    ├── en-05-predictive-maintainance.md
-    ├── lm101.html
-    ├── corr101.html
-    ├── lm201.html
-    ├── lm301.html
-    ├── lm302.html
-    ├── lm401.html
-    ├── lm501.html
-    ├── lm502.html
-    ├── lm503.html
-    └── lm504.html
+    ├── en-01-linear-intro.md          lecture 1
+    ├── en-02-feature-selection.md     lecture 2
+    ├── en-03-machine-learning.md      lecture 3
+    ├── en-04-time-series.md           lecture 4
+    ├── en-05-predictive-maintainance.md  lecture 5
+    ├── lm101.html  corr101.html  lm201.html  lm301.html  lm302.html
+    ├── lm401.html  lm501.html  lm502.html  lm503.html  lm504.html
+    └── data/                          CSV datasets
 ```
 
 ---
