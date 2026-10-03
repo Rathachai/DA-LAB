@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LM500 – Machine with Sensors</title>
+<link rel="icon" type="image/svg+xml" href="https://rathachai.github.io/assets/favicon.svg">
+<style>
+:root{
+  --bg:#f4f6fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#2563eb; --brand2:#1d4ed8; --accent:#f59e0b; --ok:#16a34a; --bad:#dc2626;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+
+header{position:relative;color:#fff;background:#1e3a8a url("https://rathachai.github.io/images/banner.jpg") center center/cover no-repeat}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.82),rgba(15,23,42,.45))}
+.head-inner{position:relative;padding:8px 20px;max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{height:24px;width:auto;display:block}
+h1{margin:0;font-size:clamp(17px,2.4vw,22px);font-weight:700;line-height:1.2}
+header p{margin:2px 0 0;max-width:760px;font-size:12.5px;opacity:.95;line-height:1.35}
+.credit{font-size:12px;color:#e5e7eb;text-align:right;white-space:nowrap;opacity:.9}
+.credit a{color:#fff;font-weight:600;text-decoration:none}
+.credit a:hover{text-decoration:underline}
+
+main{max-width:1400px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+.top{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
+.card h2{margin:0 0 8px;font-size:16px}
+.card h2 small{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+
+#machine{width:100%;height:auto;display:block;background:linear-gradient(#f8fafc,#eef2f7);border:1px solid var(--line);border-radius:10px}
+.lab-box{fill:#fff;stroke:#cbd5e1;stroke-width:1.2}
+.lab-box.warn{fill:#fffbeb;stroke:#f59e0b}
+.lab-box.bad{fill:#fef2f2;stroke:#dc2626}
+.lab-name{font-size:11px;fill:#6b7280}
+.lab-val{font-size:15px;font-weight:700;fill:#1f2937;font-variant-numeric:tabular-nums}
+.leader{stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:3 3;fill:none}
+.badge{fill:#2563eb;stroke:#fff;stroke-width:2}
+.badge-t{font-size:10px;font-weight:700;fill:#fff;text-anchor:middle}
+@keyframes smoke{0%{transform:translateY(0) scale(.5);opacity:.75}100%{transform:translateY(-70px) scale(2.2);opacity:0}}
+.smoke circle{fill:#64748b;animation:smoke 2.2s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.smoke circle:nth-child(2){animation-delay:.7s}.smoke circle:nth-child(3){animation-delay:1.4s}
+@keyframes blink{50%{opacity:.25}}
+.led.fail{animation:blink .7s infinite}
+
+.stat{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.chip{padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:700;background:#e5e7eb;color:#374151}
+.chip.run{background:#dcfce7;color:#166534}.chip.drift{background:#fef3c7;color:#92400e}.chip.fail{background:#fee2e2;color:#991b1b}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13.5px;margin:0 0 12px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin:2px 0 12px}
+.bar i{display:block;height:100%;width:0;background:var(--brand)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button,select{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:9px 12px;cursor:pointer;transition:.12s}
+button:hover:not(:disabled){border-color:var(--brand);color:var(--brand)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.primary:hover:not(:disabled){background:var(--brand2);color:#fff}
+button.warn{background:var(--accent);border-color:var(--accent);color:#fff}
+button.warn:hover:not(:disabled){background:#d97706;color:#fff}
+button.good{background:var(--ok);border-color:var(--ok);color:#fff}
+button.good:hover:not(:disabled){background:#15803d;color:#fff}
+.row{display:flex;align-items:center;gap:8px;margin:10px 0 0;font-size:13px;color:var(--muted)}
+.steps{margin:10px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}
+.steps li{margin:2px 0}.steps li.on{color:var(--ink);font-weight:600}
+
+.charts{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.charts canvas{width:100%;aspect-ratio:16/8;display:block;border:1px solid var(--line);border-radius:8px;background:#fff}
+.note{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+
+.tablewrap{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:5px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{position:sticky;top:0;background:#f1f5f9;font-weight:600;z-index:1}
+th small{display:block;font-weight:400;color:var(--muted)}
+tbody tr:first-child td{background:#eff6ff}
+tr.failrow td{background:#fee2e2 !important;font-weight:700}
+td.rul,th.rul{color:#047857;font-weight:700}
+td:first-child,th:first-child{text-align:left}
+
+@media (max-width:900px){.top{grid-template-columns:1fr}.credit{display:none}}
+@media (max-width:520px){main{padding:10px}.btns{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div>
+      <div class="brand">
+        <img src="https://rathachai.github.io/assets/logo.svg" alt="Logo">
+        <h1>LM500 · A Machine with Sensors</h1>
+      </div>
+      <p>Watch a pump with five sensors collect one reading every second. Make the sensors drift, let the machine fail, then generate the <b>RUL</b> (remaining useful life) column.</p>
+    </div>
+    <div class="credit">Powered by: Sonnet &nbsp;|&nbsp; AI Whisperer: <a href="https://rathachai.github.io" target="_blank" rel="noopener">rathachai.github.io</a></div>
+  </div>
+</header>
+
+<main>
+  <div class="top">
+    <section class="card">
+      <h2>Machine <small>motor + pump with five sensors (S1–S5)</small></h2>
+      <svg id="machine" viewBox="0 0 680 390" role="img" aria-label="Motor and pump with five sensors">
+        <!-- floor -->
+        <rect x="10" y="314" width="660" height="14" rx="3" fill="#94a3b8"/>
+        <g id="rig">
+          <!-- motor -->
+          <rect x="70" y="300" width="40" height="14" fill="#475569"/><rect x="180" y="300" width="40" height="14" fill="#475569"/>
+          <rect x="60" y="190" width="170" height="110" rx="14" fill="#3b82f6" stroke="#1e40af" stroke-width="2"/>
+          <g stroke="#1e40af" stroke-width="2" opacity=".55">
+            <line x1="82" y1="200" x2="82" y2="290"/><line x1="102" y1="200" x2="102" y2="290"/><line x1="122" y1="200" x2="122" y2="290"/>
+            <line x1="142" y1="200" x2="142" y2="290"/><line x1="162" y1="200" x2="162" y2="290"/><line x1="182" y1="200" x2="182" y2="290"/>
+            <line x1="202" y1="200" x2="202" y2="290"/>
+          </g>
+          <rect x="125" y="166" width="60" height="24" rx="3" fill="#1e293b"/>
+          <path d="M155 166 V120 H262" stroke="#111827" stroke-width="4" fill="none"/>
+          <text id="plate" x="72" y="250" font-size="13" font-weight="700" fill="#dbeafe">MOTOR</text>
+          <!-- shaft + coupling -->
+          <rect x="230" y="238" width="60" height="12" fill="#94a3b8"/>
+          <rect x="262" y="222" width="34" height="44" rx="4" fill="#fbbf24" stroke="#b45309" stroke-width="1.5"/>
+          <!-- pump -->
+          <rect x="350" y="300" width="80" height="14" fill="#475569"/>
+          <path d="M390 182 V110 H612" stroke="#94a3b8" stroke-width="22" fill="none"/>
+          <path d="M454 244 H650" stroke="#94a3b8" stroke-width="22" fill="none"/>
+          <circle id="casing" cx="390" cy="244" r="64" fill="#e2e8f0" stroke="#64748b" stroke-width="3"/>
+          <circle cx="390" cy="244" r="52" fill="#f8fafc" stroke="#cbd5e1"/>
+          <g id="imp">
+            <g fill="#2563eb" stroke="#1e40af" stroke-width="1.5">
+              <path d="M390 244 q8 -22 0 -46 q-14 22 0 46z"/>
+              <path d="M390 244 q8 -22 0 -46 q-14 22 0 46z" transform="rotate(60 390 244)"/>
+              <path d="M390 244 q8 -22 0 -46 q-14 22 0 46z" transform="rotate(120 390 244)"/>
+              <path d="M390 244 q8 -22 0 -46 q-14 22 0 46z" transform="rotate(180 390 244)"/>
+              <path d="M390 244 q8 -22 0 -46 q-14 22 0 46z" transform="rotate(240 390 244)"/>
+              <path d="M390 244 q8 -22 0 -46 q-14 22 0 46z" transform="rotate(300 390 244)"/>
+            </g>
+            <circle cx="390" cy="244" r="9" fill="#1e293b"/><circle cx="390" cy="236" r="2.5" fill="#fff"/>
+          </g>
+          <text x="352" y="338" font-size="13" font-weight="700" fill="#475569">PUMP</text>
+          <path id="crack" d="M372 190 l10 18 l-8 12 l14 16 l-6 14 l12 18" stroke="#111827" stroke-width="3" fill="none" style="display:none"/>
+          <g class="smoke" id="smoke" style="display:none"><circle cx="372" cy="180" r="12"/><circle cx="390" cy="176" r="14"/><circle cx="408" cy="180" r="12"/></g>
+        </g>
+
+        <!-- sensor probes (on the machine) -->
+        <circle class="badge" cx="95" cy="192" r="11"/><text class="badge-t" x="95" y="196">S1</text>
+        <circle class="badge" cx="155" cy="138" r="11"/><text class="badge-t" x="155" y="142">S4</text>
+        <rect x="146" y="128" width="18" height="20" rx="3" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+        <circle class="badge" cx="238" cy="207" r="11"/><text class="badge-t" x="238" y="211">S2</text>
+        <circle class="badge" cx="276" cy="282" r="11"/><text class="badge-t" x="276" y="286">S5</text>
+        <circle class="badge" cx="520" cy="110" r="11"/><text class="badge-t" x="520" y="114">S3</text>
+
+        <!-- leader lines -->
+        <path class="leader" d="M70 62 L93 181"/>
+        <path class="leader" d="M210 62 L158 127"/>
+        <path class="leader" d="M345 62 L240 196"/>
+        <path class="leader" d="M276 338 L276 293"/>
+        <path class="leader" d="M580 62 L525 100"/>
+
+        <!-- value labels -->
+        <g id="lab1"><rect class="lab-box" x="10" y="16" width="130" height="46" rx="8"/><text class="lab-name" x="20" y="32">S1 · Temperature (°C)</text><text class="lab-val" id="v1" x="20" y="53">–</text></g>
+        <g id="lab4"><rect class="lab-box" x="150" y="16" width="130" height="46" rx="8"/><text class="lab-name" x="160" y="32">S4 · Current (A)</text><text class="lab-val" id="v4" x="160" y="53">–</text></g>
+        <g id="lab2"><rect class="lab-box" x="285" y="16" width="130" height="46" rx="8"/><text class="lab-name" x="295" y="32">S2 · Vibration (mm/s)</text><text class="lab-val" id="v2" x="295" y="53">–</text></g>
+        <g id="lab3"><rect class="lab-box" x="530" y="16" width="140" height="46" rx="8"/><text class="lab-name" x="540" y="32">S3 · Pressure (bar)</text><text class="lab-val" id="v3" x="540" y="53">–</text></g>
+        <g id="lab5"><rect class="lab-box" x="216" y="338" width="130" height="46" rx="8"/><text class="lab-name" x="226" y="354">S5 · Speed (rpm)</text><text class="lab-val" id="v5" x="226" y="375">–</text></g>
+
+        <!-- status lamp -->
+        <rect x="500" y="344" width="170" height="38" rx="8" fill="#fff" stroke="#cbd5e1"/>
+        <circle class="led" id="led" cx="522" cy="363" r="9" fill="#9ca3af"/>
+        <text id="ledText" x="540" y="368" font-size="14" font-weight="700" fill="#374151">STOPPED</text>
+      </svg>
+    </section>
+
+    <section class="card">
+      <h2>Control <small>one reading every second</small></h2>
+      <div class="stat"><span class="chip" id="state">Stopped</span></div>
+      <dl class="kv">
+        <dt>Machine ID</dt><dd id="mid">M001</dd>
+        <dt>Readings collected</dt><dd id="n">0</dd>
+        <dt>Machine time</dt><dd id="tm">0 s</dd>
+        <dt>Drift readings so far</dt><dd id="dr">–</dd>
+      </dl>
+      <div class="bar" title="time until the next reading"><i id="prog"></i></div>
+      <div class="btns">
+        <button class="warn" id="bDrift" disabled style="grid-column:1/-1">⚠ Make sensors drift (fails in 30 circles)</button>
+        <button class="good" id="bRul" disabled>Generate RUL</button>
+        <button id="bReset">↺ Reset</button>
+        <button id="bCsv" disabled style="grid-column:1/-1">⬇ Download latest 100 rows (CSV)</button>
+      </div>
+      <div class="row">
+        <label for="speed">Play speed</label>
+        <select id="speed"><option value="1">1× (1 s per reading)</option><option value="2">2×</option><option value="5">5×</option><option value="10">10×</option></select>
+      </div>
+      <ol class="steps" id="steps">
+        <li>The machine starts running: the first 80 readings load quickly, then one new reading arrives every second.</li>
+        <li>Press <b>Make sensors drift</b>: the sensors go bad one after another, the machine breaks after 30 more readings, and collection stops.</li>
+        <li>Press <b>Generate RUL</b> to add the target column.</li>
+      </ol>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Live sensor graphs <small>latest 50 readings</small></h2>
+    <div class="charts" id="charts"></div>
+    <p class="note" id="chartNote">Dashed amber line: sensors start to drift. Dashed red line: failure.</p>
+  </section>
+
+  <section class="card">
+    <h2>Data table <small id="tblNote">latest 100 readings, newest on top</small></h2>
+    <div class="tablewrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+    <p class="note">RUL (remaining useful life) = time from this reading until the failure. The failed reading has RUL = 0. The CSV button downloads the same latest 100 readings.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const SENS = [
+    {k:"s1", name:"Temperature", unit:"°C",   base:60,   sd:1.2,  amp:+26,  on:0.00, lo:50,   hi:100,  dec:1, col:"#dc2626"},
+    {k:"s2", name:"Vibration",   unit:"mm/s", base:2.0,  sd:0.25, amp:+2.0, swing:3.2, on:0.60, lo:0,    hi:12,   dec:2, col:"#7c3aed"},
+    {k:"s3", name:"Pressure",    unit:"bar",  base:5.0,  sd:0.12, amp:-2.3, on:0.33, lo:2,    hi:6,    dec:2, col:"#0891b2"},
+    {k:"s4", name:"Current",     unit:"A",    base:12.0, sd:0.45,  amp:+2.5, swing:6.0, on:0.20, lo:4,    hi:24,   dec:2, col:"#d97706"},
+    {k:"s5", name:"Speed",       unit:"rpm",  base:1500, sd:10,   amp:-190, on:0.47, lo:1250, hi:1560, dec:0, col:"#16a34a"}
+  ];
+  const STEP_S = 1, PREFILL = 80, WIN = 50, TBL_WIN = 100, DRIFT_N = 30;   // WIN = circles in the graphs, TBL_WIN = rows in the table
+  let machineNo = 1, machineId = "M001", swingPhase = 0;
+  let rows, state, driftStart, failIdx, hasRul, timer, tickMs, lastTick, rpm, shake;
+
+  function randn(){ let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+  // ---------- charts ----------
+  const charts = {};
+  SENS.concat([{k:"rul", name:"RUL", unit:"s", col:"#047857", lo:0, hi:100, dec:0}]).forEach(s => {
+    const cv = document.createElement("canvas"); cv.id = "c_"+s.k;
+    if (s.k === "rul") cv.style.display = "none";
+    $("charts").appendChild(cv); charts[s.k] = {cv, s};
+  });
+
+  function drawChart(c){
+    const {cv, s} = c, dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth, h = cv.clientHeight; if (!w) return;
+    if (cv.width !== Math.round(w*dpr)) { cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr); }
+    const g = cv.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
+    const L=46, R=10, T=26, B=18, pw=w-L-R, ph=h-T-B;
+    const n = rows.length, first = Math.max(0, n-WIN);
+    const vis = rows.slice(first);
+    let lo = s.lo, hi = s.hi;
+    if (s.k === "rul") { hi = Math.max(10, ...vis.map(r => r.rul ?? 0)); }
+    const X = i => L + pw * (i / (WIN-1)), Y = v => T + ph * (1 - (v-lo)/(hi-lo));
+    g.font = "11px system-ui,sans-serif"; g.fillStyle = "#6b7280"; g.strokeStyle = "#e5e7eb"; g.lineWidth = 1;
+    for (let j=0;j<=4;j++){ const v = lo + (hi-lo)*j/4, y = Y(v); g.beginPath(); g.moveTo(L,y); g.lineTo(L+pw,y); g.stroke();
+      g.textAlign="right"; g.fillText(Math.abs(v)>=100?v.toFixed(0):v.toFixed(s.dec>0?1:0), L-5, y+4); }
+    g.textAlign="left"; g.fillStyle = s.col; g.font = "bold 12px system-ui,sans-serif";
+    g.fillText(s.name+" ("+s.unit+")", L, 15);
+    const last = vis[vis.length-1];
+    const val = last ? (s.k==="rul" ? last.rul : last[s.k]) : null;
+    if (val != null) { g.textAlign="right"; g.fillText(Number(val).toFixed(s.dec), L+pw, 15); }
+    // markers
+    const mark = (idx, col, txt) => { if (idx==null || idx<first || idx>=n) return; const x = X(idx-first);
+      g.strokeStyle=col; g.setLineDash([4,3]); g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke(); g.setLineDash([]);
+      g.fillStyle=col; g.font="10px system-ui,sans-serif"; g.textAlign="left"; g.fillText(txt, Math.min(x+3, L+pw-30), T+10); };
+    mark(driftStart, "#f59e0b", "drift"); mark(failIdx, "#dc2626", "fail");
+    // line + circles
+    const pts = vis.map((r,i) => [X(i), Y(s.k==="rul" ? r.rul : r[s.k])]).filter(p => p[1]===p[1]);
+    if (pts.length) {
+      g.strokeStyle = s.col; g.lineWidth = 1.5; g.beginPath(); pts.forEach((p,i)=> i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])); g.stroke();
+    }
+    g.fillStyle="#9ca3af"; g.textAlign="left"; g.font="10px system-ui,sans-serif";
+    g.fillText("reading #"+(n?rows[first].id:0), L, h-4); g.textAlign="right"; g.fillText(n?("#"+rows[n-1].id):"", L+pw, h-4);
+  }
+  const drawAll = () => Object.values(charts).forEach(drawChart);
+  window.addEventListener("resize", drawAll);
+
+  // ---------- table ----------
+  function drawTable(){
+    const head = "<tr><th>machine</th><th>id</th><th>t<small>s</small></th>" + SENS.map(s=>`<th>${s.k}<small>${s.name} (${s.unit})</small></th>`).join("") + (hasRul?'<th class="rul">RUL<small>s</small></th>':"") + "</tr>";
+    $("tbl").tHead.innerHTML = head;
+    const shown = rows.slice(-TBL_WIN).reverse();
+    $("tbl").tBodies[0].innerHTML = shown.map(r =>
+      `<tr${r.fail?' class="failrow"':''}><td>${machineId}</td><td>${r.id}</td><td>${r.t}</td>` + SENS.map(s=>`<td>${r[s.k].toFixed(2)}</td>`).join("") + (hasRul?`<td class="rul">${r.rul}</td>`:"") + "</tr>").join("");
+    $("tblNote").textContent = rows.length > TBL_WIN ? `latest ${TBL_WIN} of ${rows.length} readings, newest on top` : `${rows.length} reading${rows.length===1?"":"s"}, newest on top`;
+  }
+
+  // ---------- machine view ----------
+  function drawMachine(){
+    const last = rows[rows.length-1];
+    SENS.forEach((s,i) => {
+      const el = $("v"+(i+1)), box = $("lab"+(i+1)).firstElementChild;
+      if (!last) { el.textContent = "–"; box.setAttribute("class","lab-box"); return; }
+      el.textContent = last[s.k].toFixed(s.dec);
+      const z = Math.abs(last[s.k]-s.base)/s.sd;
+      box.setAttribute("class","lab-box"+(z>12?" bad":z>4?" warn":""));
+    });
+    const led = $("led"), txt = $("ledText");
+    const m = {warm:["#16a34a","RUNNING","run","Loading first 80 readings…"], idle:["#9ca3af","STOPPED","","Stopped"], run:["#16a34a","RUNNING","run","Running"], drift:["#f59e0b","WARNING","drift","Drifting"], fail:["#dc2626","FAILED","fail","Failed"]}[state];
+    led.setAttribute("fill", m[0]); txt.textContent = m[1]; led.setAttribute("class","led"+(state==="fail"?" fail":""));
+    $("state").textContent = m[3]; $("state").className = "chip " + m[2];
+    $("crack").style.display = $("smoke").style.display = state==="fail" ? "" : "none";
+    $("casing").setAttribute("fill", state==="fail" ? "#fecaca" : "#e2e8f0");
+  }
+  function drawInfo(){
+    $("mid").textContent = machineId; $("plate").textContent = "MOTOR " + machineId;
+    $("n").textContent = rows.length;
+    $("tm").textContent = rows.length ? rows[rows.length-1].t + " s" : "0 s";
+    $("dr").textContent = driftStart==null ? "–" : (rows.length - driftStart - 1) + " / " + DRIFT_N;
+    $("bDrift").disabled = state !== "run";
+    $("bRul").disabled = !(state === "fail" && !hasRul);
+    $("bCsv").disabled = rows.length === 0 || state === "warm";
+    const on = state==="warm"||state==="run" ? 0 : state==="drift" ? 1 : 2;
+    [...$("steps").children].forEach((li,i)=>li.classList.toggle("on", i===on));
+    charts.rul.cv.style.display = hasRul ? "" : "none";
+  }
+
+  // ---------- simulation ----------
+  function makeRow(){
+    const id = rows.length + 1, t = (id-1) * STEP_S;
+    const k = driftStart==null ? 0 : id - 1 - driftStart;          // 1..10 while drifting
+    const r = {id, t};
+    SENS.forEach(s => {
+      // each sensor starts to drift at its own time (s.on = fraction of the drift period) and fails by the end
+      const p = k > 0 ? Math.min(1, Math.max(0, (k - s.on * DRIFT_N) / (DRIFT_N * (1 - s.on)))) : 0;
+      const f = Math.pow(p, 1.6);
+      let v = s.base + s.sd * randn() * (1 + (s.swing ? 6 : 2.5) * f) + s.amp * f;
+      if (s.swing) v += s.swing * p * Math.sin(2.1 * k + swingPhase) * (0.6 + 0.4 * Math.random());   // swings up and down while drifting
+      r[s.k] = v;
+    });
+    // keep sensor values in a sane range
+    r.s2 = Math.max(0.2, r.s2); r.s3 = Math.max(0.5, r.s3);
+    if (k >= DRIFT_N) { r.fail = true; }
+    rows.push(r);
+    return r;
+  }
+  function sample(){
+    const r = makeRow();
+    if (r.fail) { failIdx = rows.length-1; state = "fail"; stop(); }
+    rpm = r.s5; shake = Math.min(6, (r.s2-1.8)*0.7);
+    refresh();
+  }
+  function refresh(){ drawMachine(); drawInfo(); drawTable(); drawAll(); }
+  function stop(){ clearInterval(timer); timer = null; $("prog").style.width = "0"; }
+  function startTimer(){
+    tickMs = STEP_S * 1000 / +$("speed").value; lastTick = performance.now();
+    timer = setInterval(() => { lastTick = performance.now(); sample(); }, tickMs);
+  }
+  function reset(){
+    stop(); swingPhase = Math.random() * 6.28; machineNo = 1 + Math.floor(Math.random()*999); machineId = "M" + String(machineNo).padStart(3,"0");
+    rows = []; state = "warm"; driftStart = null; failIdx = null; hasRul = false; rpm = 1500; shake = 0.2;
+    refresh();
+    // fast-forward: the first 80 readings run quickly, then one reading every second
+    timer = setInterval(() => {
+      const r = makeRow(); rpm = r.s5; shake = Math.min(6, (r.s2-1.8)*0.7);
+      $("prog").style.width = (rows.length / PREFILL * 100) + "%";
+      if (rows.length >= PREFILL) { clearInterval(timer); timer = null; state = "run"; startTimer(); }
+      refresh();
+    }, 30);
+  }
+
+  $("bDrift").onclick = () => { if (state !== "run") return; driftStart = rows.length - 1; state = "drift"; refresh(); };
+  $("bRul").onclick = () => { rows.forEach(r => r.rul = (rows[failIdx].t - r.t)); hasRul = true; refresh(); };
+  $("bReset").onclick = reset;
+  $("speed").onchange = () => { if (state === "run" || state === "drift") { stop(); startTimer(); } };
+  $("bCsv").onclick = () => {
+    const head = ["machine","id","t_s"].concat(SENS.map(s=>s.k)).concat(hasRul?["RUL_s"]:[]);
+    const lines = [head.join(",")].concat(rows.slice(-TBL_WIN).map(r => [machineId, r.id, r.t].concat(SENS.map(s=>r[s.k].toFixed(2))).concat(hasRul?[r.rul]:[]).join(",")));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([lines.join("\n")+"\n"], {type:"text/csv"}));
+    a.download = "M-" + String(machineNo).padStart(3,"0") + (hasRul ? "-with-rul" : "-without-rul") + ".csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  };
+
+  // animation loop: rotating impeller, vibration shake, progress bar
+  let ang = 0, prev = performance.now();
+  function frame(now){
+    const dt = Math.min(0.05, (now-prev)/1000); prev = now;
+    const spin = (state==="idle"||state==="fail") ? 0 : (rpm||1500) / 60 * 360 * dt * 0.08;   // slowed down so it is visible
+    ang = (ang + spin) % 360;
+    $("imp").setAttribute("transform", `rotate(${ang} 390 244)`);
+    const sh = (state==="idle"||state==="fail") ? 0 : Math.max(0.2, shake||0.2);
+    $("rig").setAttribute("transform", `translate(${((Math.random()-.5)*sh).toFixed(2)} ${((Math.random()-.5)*sh).toFixed(2)})`);
+    if (timer && state !== "warm") $("prog").style.width = Math.min(100, (now-lastTick)/tickMs*100) + "%";
+    requestAnimationFrame(frame);
+  }
+  reset(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

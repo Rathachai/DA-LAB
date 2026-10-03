@@ -76,6 +76,7 @@ A course in five topics for engineering students who are new to data science. Ea
 
 * **Lecture** — [Chapter 5 · Predictive Maintenance](en-05-predictive-maintainance.md) · [ภาษาไทย](th-05-predictive-maintainance.md)
 * **Labs**
+  * [LM500 · A Machine with Sensors](https://rathachai.github.io/DA-LAB/learnings/linear/lm500-machine.html) — a pump with five live sensors; make them drift, let the machine fail, then generate RUL and download the data
   * [LM501 · Remaining Useful Life from Sensors](https://rathachai.github.io/DA-LAB/learnings/linear/lm501.html) — 60 machines, split by machine vs. by row
   * [LM502 · Degradation Curve and Maintenance Threshold](https://rathachai.github.io/DA-LAB/learnings/linear/lm502.html) — extrapolate a trend to a threshold and weigh the cost
   * [LM503 · Early Warning with a Sliding Window](https://rathachai.github.io/DA-LAB/learnings/linear/lm503.html) — detect faults from residuals
@@ -142,7 +143,7 @@ learnings/
     ├── en-05-predictive-maintainance.md  lecture 5
     ├── th-01 … th-05 (*.md)             lectures 1–5 in Thai
     ├── lm101.html  corr101.html  lm201.html  lm301.html  lm302.html
-    ├── lm401.html  lm501.html  lm502.html  lm503.html  lm504.html
+    ├── lm401.html  lm500-machine.html  lm501.html  lm502.html  lm503.html  lm504.html
     ├── data/                          CSV datasets
     └── notebooks/                     Jupyter demos (nb-*), quizzes (qz-*) and solutions (sol-*)
 ```
