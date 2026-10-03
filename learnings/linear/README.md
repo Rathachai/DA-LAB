@@ -98,7 +98,7 @@ Each chapter explains the theory and links to the matching interactive labs.
 |---------|-------|------|
 | [01 · Introduction to Linear Models](en-01-linear-intro.md) | regression, residuals, error metrics, gradient descent, mathematics of least squares | LM101 |
 | [02 · Correlation and Feature Selection](en-02-feature-selection.md) | Pearson correlation, multiple regression, screening, log transform, adjusted R² | CORR101, LM201 |
-| [03 · Machine Learning and Train–Test Split](en-03-machine-learning.md) | generalisation, overfitting, splitting, leakage, cross-validation | LM301, LM302 |
+| [03 · Machine Learning and Train–Test Split](en-03-machine-learning.md) | generalisation, overfitting, splitting, leakage, repeated splits | LM301, LM302 |
 | [04 · Time Series](en-04-time-series.md) | sliding windows, AR models, chronological split, recursive forecasting | LM401 |
 | [05 · Predictive Maintenance](en-05-predictive-maintainance.md) | RUL, degradation thresholds, residual alarms, cost-based decisions | LM501–LM504 |
 
