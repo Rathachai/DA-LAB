@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LM502 – Degradation Curve and Maintenance Threshold</title>
+<link rel="icon" type="image/svg+xml" href="https://rathachai.github.io/assets/favicon.svg">
+<style>
+:root{
+  --bg:#f4f6fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#2563eb; --brand2:#1d4ed8; --accent:#f59e0b; --good:#059669; --bad:#dc2626; --amber:#d97706;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;min-height:100vh;font-size:15px;line-height:1.45}
+
+header{position:relative;color:#fff;background:#1e3a8a url("https://rathachai.github.io/images/banner.jpg") center center/cover no-repeat;flex:0 0 auto}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.82),rgba(15,23,42,.45))}
+.head-inner{position:relative;padding:8px 20px;max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{height:24px;width:auto;display:block}
+h1{margin:0;font-size:clamp(17px,2.4vw,22px);font-weight:700;line-height:1.2}
+header p{margin:2px 0 0;max-width:740px;font-size:12.5px;opacity:.95;line-height:1.35}
+.credit{font-size:12px;color:#e5e7eb;text-align:right;white-space:nowrap;opacity:.9}
+.credit a{color:#fff;font-weight:600;text-decoration:none}
+.credit a:hover{text-decoration:underline}
+
+main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1.1fr .9fr;gap:16px;padding:16px;max-width:1400px;width:100%;margin:0 auto}
+.pane{overflow-y:auto;min-height:0;padding-right:4px;display:flex;flex-direction:column;gap:14px;height:calc(100vh - var(--hh,70px) - 32px);min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
+.card h2{margin:0 0 8px;font-size:16px}
+.card h2 small{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+.pane-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 -4px}
+
+canvas{display:block;width:100%;border-radius:8px;background:#fff;border:1px solid var(--line)}
+#chart{aspect-ratio:16/9;touch-action:none;cursor:ew-resize}
+#lossChart,#rulChart,#costChart{aspect-ratio:16/8}
+
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.row label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.field{display:flex;flex-direction:column;gap:2px;flex:1 1 150px;min-width:130px}
+.field .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.field .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--brand)}
+button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer;transition:.12s}
+button:hover{border-color:var(--brand);color:var(--brand)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.primary:hover{background:var(--brand2);color:#fff}
+button.warn{background:var(--accent);border-color:var(--accent);color:#fff}
+button.on{background:#dbeafe;border-color:var(--brand);color:var(--brand2);font-weight:600}
+.patterns{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.patterns button{padding:7px 6px;font-size:13px}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:4px}
+
+.equation{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(15px,2.4vw,19px);font-weight:700;color:var(--brand);padding:6px 2px;word-break:break-word}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kv .k{font-size:12px;color:var(--muted)}
+.kv .v{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.kv .v.big{font-size:20px}
+.good{color:#059669}.badc{color:#dc2626}.amberc{color:#b45309}
+#summary{font-size:13.5px;line-height:1.55;margin-top:10px;padding:10px 12px;border-radius:8px;background:#f8fafc;border:1px solid var(--line)}
+#summary b{font-variant-numeric:tabular-nums}
+#status{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+#status.ok{background:#ecfdf5;color:#065f46}
+#status.err{background:#fef2f2;color:#991b1b}
+#costBox{font-size:14px;padding:10px 12px;border-radius:8px;margin-top:10px;background:#f8fafc;border:1px solid var(--line)}
+#costBox.fail{background:#fef2f2;border-color:#fecaca}
+#costBox.okc{background:#ecfdf5;border-color:#a7f3d0}
+#costBox .total{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:24px;font-weight:800}
+table.mini{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+table.mini th,table.mini td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+table.mini th:first-child,table.mini td:first-child{text-align:left}
+table.mini th{color:var(--muted);font-weight:600;font-size:12px}
+.tablewrap{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table.data{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+table.data th,table.data td{padding:3px 8px;text-align:right;border-bottom:1px solid #f0f1f4;white-space:nowrap}
+table.data thead th{position:sticky;top:0;background:#f8fafc;z-index:2;border-bottom:2px solid var(--line);font-weight:700}
+table.data thead th small{display:block;font-weight:400;color:var(--muted);font-size:10.5px}
+table.data tr.win td{background:#eff6ff}
+table.data tr.cur td{background:#bfdbfe;font-weight:700}
+.scroll-x{overflow-x:auto}
+.card ol,.card ul{margin:6px 0 0;padding-left:20px;font-size:13.5px}
+.card code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12.5px}
+
+@media (max-width:860px){
+  main{display:block;padding:12px}
+  .pane{height:auto;overflow:visible;padding:0}
+  .pane + .pane{margin-top:14px}
+  .head-inner{padding:8px 14px;flex-direction:column;align-items:flex-start;gap:4px}
+  .credit{text-align:left;white-space:normal;font-size:11.5px}
+}
+</style>
+</head>
+<body>
+
+<header id="top">
+  <div class="head-inner">
+    <div>
+      <div class="brand">
+        <img src="https://rathachai.github.io/assets/logo.svg" alt="Logo">
+        <h1>LM502 · Degradation Curve &amp; Maintenance Threshold</h1>
+      </div>
+      <p>A machine's health index slowly declines. Fit a trend line, extend it to the maintenance threshold, and decide <i>when</i> to repair — too early wastes life, too late means a breakdown.</p>
+    </div>
+    <div class="credit">Powered by: Sonnet &nbsp;|&nbsp; AI Whisperer: <a href="https://rathachai.github.io" target="_blank" rel="noopener">rathachai.github.io</a></div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ LEFT ============ -->
+  <section class="pane">
+    <p class="pane-title">① The machine</p>
+
+    <div class="card">
+      <h2>Health index <small>100 = like new · 0 = failed</small></h2>
+      <canvas id="chart" aria-label="Health index chart"></canvas>
+      <div class="legend">
+        <span><i style="border-color:#0f766e"></i>sensor readings (so far)</span>
+        <span><i style="border-color:#2563eb"></i>fitted trend</span>
+        <span><i style="border-color:#2563eb;border-top-style:dashed"></i>extrapolation</span>
+        <span><i style="border-color:#d97706;border-top-style:dashed"></i>maintenance threshold</span>
+        <span style="color:#dc2626">✕ true failure</span>
+      </div>
+      <div class="row">
+        <div class="field" style="flex-basis:260px">
+          <div class="lab"><span>now (operating hours)</span><b id="nowVal">0</b></div>
+          <input type="range" id="nowSlider" min="15" max="200" step="1" value="100">
+        </div>
+        <label><input type="checkbox" id="showFit" checked> trend line</label>
+        <label><input type="checkbox" id="reveal" checked> reveal the true future</label>
+      </div>
+      <p class="hint">Drag on the chart (or use the slider) to move <b>now</b>. Only readings up to <i>now</i> are known to the model. Untick “reveal” to practise predicting without seeing the future.</p>
+    </div>
+
+    <div class="card">
+      <h2>Data table <small id="tblInfo"></small></h2>
+      <div class="tablewrap"><table class="data" id="table"></table></div>
+      <p class="hint">Sensor readings known up to <b>now</b> (newest first). Blue rows are inside the fit window and are used to fit the trend. <b>Fitted</b> is the trend line's value and <b>residual</b> = reading − fitted.</p>
+    </div>
+
+    <div class="card">
+      <h2>Degradation pattern</h2>
+      <div class="patterns" id="patterns"></div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>sensor noise (σ)</span><b id="noiseVal">2.0</b></div>
+          <input type="range" id="noiseSlider" min="0" max="8" step="0.5" value="2">
+        </div>
+        <button class="primary" id="regen">🎲 New machine</button>
+      </div>
+      <p class="hint" id="patDesc"></p>
+    </div>
+
+    <div class="card">
+      <h2>Maintenance rule</h2>
+      <div class="row" style="margin-top:0">
+        <div class="field">
+          <div class="lab"><span>maintenance threshold θ (health)</span><b id="thetaVal">30</b></div>
+          <input type="range" id="thetaSlider" min="5" max="90" step="1" value="30">
+        </div>
+        <div class="field">
+          <div class="lab"><span>fit on the last … points</span><b id="winVal">60</b></div>
+          <input type="range" id="winSlider" min="5" max="200" step="1" value="60">
+        </div>
+      </div>
+      <p class="hint">Plan the repair for the moment the fitted trend reaches <b>θ</b>. A short fit window follows recent behaviour; a long window averages the whole history.</p>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>preventive repair cost</span><b id="cpVal">1000</b></div>
+          <input type="range" id="cpSlider" min="200" max="3000" step="100" value="1000">
+        </div>
+        <div class="field">
+          <div class="lab"><span>breakdown cost</span><b id="cfVal">8000</b></div>
+          <input type="range" id="cfSlider" min="1000" max="20000" step="500" value="8000">
+        </div>
+        <div class="field">
+          <div class="lab"><span>cost per wasted hour of life</span><b id="cwVal">5</b></div>
+          <input type="range" id="cwSlider" min="0" max="30" step="1" value="5">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT ============ -->
+  <section class="pane">
+    <p class="pane-title">② Fit, predict &amp; decide</p>
+
+    <div class="card">
+      <h2>Trend model</h2>
+      <div class="equation" id="equation">health(t) = β₀ + β₁·t</div>
+      <div id="summary"></div>
+    </div>
+
+    <div class="card">
+      <h2>Fit the trend <small>linear regression on the fit window</small></h2>
+      <div class="row" style="margin-top:0">
+        <button id="stepBtn" class="primary">⏭ Step</button>
+        <button id="playBtn" class="warn">▶ Train</button>
+        <button id="solveBtn">⚡ Solve instantly</button>
+        <button id="resetBtn">↺ Reset</button>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="live" checked> live refit (instant) when <i>now</i>, window or data change</label>
+      </div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>learning rate (α)</span><b id="lrVal">0.100</b></div>
+          <input type="range" id="lrSlider" min="0.01" max="0.9" step="0.01" value="0.1">
+        </div>
+        <div class="field">
+          <div class="lab"><span>speed (steps / frame)</span><b id="spVal">3</b></div>
+          <input type="range" id="spSlider" min="1" max="100" step="1" value="3">
+        </div>
+      </div>
+      <div class="pair" style="margin-top:10px">
+        <div class="kv"><div class="k">iteration</div><div class="v" id="iter">0</div></div>
+        <div class="kv"><div class="k">points in fit window</div><div class="v" id="nWin">0</div></div>
+      </div>
+      <div id="status">Move <b>now</b> and watch the trend line. To watch gradient descent, press <b>Reset</b> then <b>Train</b>.</div>
+    </div>
+
+    <div class="card">
+      <h2>Fit quality <small>lower is better (R²: higher)</small></h2>
+      <div class="scroll-x"><table class="mini">
+        <tr><th>metric</th><th>Fit window<br><small>(trained on)</small></th><th>Next 30 h<br><small>(unseen)</small></th></tr>
+        <tr><td>MAE</td><td id="mae">–</td><td id="nmae">–</td></tr>
+        <tr><td>RMSE</td><td id="rmse">–</td><td id="nrmse">–</td></tr>
+        <tr><td>MAPE</td><td id="mape">–</td><td id="nmape">–</td></tr>
+        <tr><td>MSE (loss)</td><td id="mse">–</td><td id="nmse">–</td></tr>
+        <tr><td>R²</td><td id="r2">–</td><td id="nr2">–</td></tr>
+      </table></div>
+      <p class="hint">“Next 30 h” are the sensor readings right after <i>now</i>. When wear accelerates, the line fits the past well but misses the near future.</p>
+    </div>
+
+    <div class="card">
+      <h2>Loss curve <small>MSE vs. iteration</small></h2>
+      <canvas id="lossChart" aria-label="Loss curve"></canvas>
+      <div class="row">
+        <label><input type="checkbox" id="logLoss"> log scale</label>
+        <span class="hint" style="margin:0"><span style="color:#9333ea">╌</span> best possible MSE: <b id="optMse">–</b></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Remaining life prediction over time <small>RUL = hours until failure</small></h2>
+      <canvas id="rulChart" aria-label="RUL prediction chart"></canvas>
+      <div class="legend">
+        <span><i style="border-color:#2563eb"></i>predicted RUL</span>
+        <span><i style="border-color:#9ca3af;border-top-style:dashed"></i>true RUL</span>
+        <span style="color:#6b7280">above the dashed line = too optimistic (dangerous)</span>
+      </div>
+      <p class="hint">At every moment the same trend method is re-fitted on the last <b id="winHint">60</b> points. Predictions usually get better as failure gets closer.</p>
+    </div>
+
+    <div class="card">
+      <h2>Cost of the decision <small>expected cost from the trend, plus the real outcome</small></h2>
+      <div id="costBox">Reveal the true future to evaluate the decision.</div>
+      <canvas id="costChart" aria-label="Cost versus threshold" style="margin-top:10px"></canvas>
+      <div class="legend">
+        <span><i style="border-color:#2563eb"></i>expected cost (from the trend's uncertainty)</span>
+        <span><i style="border-color:#94a3b8;border-top-style:dashed"></i>actual cost with the true failure time (revealed)</span>
+        <span style="color:#d97706">◆ current θ · <span style="color:#059669">●</span> best θ</span>
+      </div>
+      <p class="hint">Each point = cost if θ were set to that health level. Low θ → repair planned too late → risk of breakdown. High θ → planned too early → wasted life. The blue curve is what you can compute <i>before</i> the machine fails; the dashed curve is the real cost in hindsight. When the trend is biased (e.g. accelerating wear) the two disagree — that is the risk of trusting a straight line.</p>
+    </div>
+
+    <div class="card">
+      <h2>How it works</h2>
+      <ol>
+        <li><b>Sense:</b> the health index is measured with noise every hour.</li>
+        <li><b>Fit:</b> a straight line <code>health = β₀ + β₁·t</code> is fitted to recent readings (gradient descent or the exact formula).</li>
+        <li><b>Extrapolate:</b> solve the line for the hour where health reaches θ → plan the repair. Solve for health = 0 → predicted failure → RUL.</li>
+        <li><b>Decide:</b> repair too early → you throw away useful life; too late → breakdown cost.</li>
+      </ol>
+      <p class="hint">Try: <i>Accelerating wear</i> (a straight line is too optimistic), <i>Fast early wear</i> (too pessimistic), <i>Step shocks</i>, and compare a short vs. long fit window.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const N = 300, FAIL = 0;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const fmt = (v, d = 3) => !isFinite(v) ? "∞" : Math.abs(v) >= 1e6 ? v.toExponential(2) : v.toFixed(Math.abs(v) >= 1000 ? 0 : Math.abs(v) >= 100 ? 1 : d);
+  const money = v => "$" + Math.round(v).toLocaleString("en-US");
+
+  // ---------- degradation patterns ----------
+  const PATTERNS = {
+    linear: { label: "📉 Linear wear", desc: "Health falls at a steady rate — the ideal case for a straight-line fit.",
+              D: (Tf) => t => 100 * t / Tf },
+    accel:  { label: "📈 Accelerating wear", desc: "Slow at first, then faster and faster (typical for cracks and bearings). A straight line is too optimistic.",
+              D: (Tf) => t => 100 * (Math.exp(3 * t / Tf) - 1) / (Math.exp(3) - 1) },
+    early:  { label: "⤵ Fast early wear", desc: "Quick initial wear that levels off. A straight line is too pessimistic.",
+              D: (Tf) => t => 100 * Math.pow(t / Tf, 0.6) },
+    knee:   { label: "⌐ Late-onset fault", desc: "Healthy for a long time, then a fault starts and health drops quickly. Early data says nothing about the fault.",
+              D: (Tf) => { const t0 = 0.5 * Tf; return t => t < t0 ? 6 * t / t0 : 6 + 94 * Math.pow((t - t0) / (Tf - t0), 1.2); } },
+    shock:  { label: "⚡ Step shocks", desc: "Steady wear plus sudden drops (impacts, overloads).",
+              D: (Tf) => { const sh = [rand(.25, .4), rand(.5, .65), rand(.7, .85)].map(f => ({ t: f * Tf, m: rand(7, 12) })), tot = sh.reduce((s, x) => s + x.m, 0);
+                return t => (100 - tot) * t / Tf + sh.reduce((s, x) => s + (t >= x.t ? x.m : 0), 0); } }
+  };
+  const S = { key: "accel", noise: 2, now: 110, win: 60, theta: 30, live: true, Tf: 220, h: [], unit: [], sensor: [], cp: 1000, cf: 8000, cw: 5 };
+  const model = { w: 0, b: 0, iter: 0, history: [], playing: false, lr: 0.1, trained: false, converged: false, diverged: false };
+
+  function generate() {
+    S.Tf = Math.round(rand(200, 250));
+    const D = PATTERNS[S.key].D(S.Tf);
+    S.h = Array.from({ length: N }, (_, t) => clamp(100 - D(t), 0, 100));
+    S.unit = Array.from({ length: N }, gauss); makeSensor();
+    const sl = $("nowSlider"); sl.max = S.Tf - 1; S.now = clamp(Math.round(S.Tf * 0.5), 15, S.Tf - 1); sl.value = S.now;
+  }
+  function makeSensor() { S.sensor = S.h.map((v, i) => clamp(v + S.noise * S.unit[i], 0, 100)); }
+
+  // ---------- window / rows ----------
+  let rows = [], tm = 0, ts = 1;
+  function windowRows(now = S.now, win = S.win) {
+    const lo = Math.max(0, now - win + 1), r = [];
+    for (let t = lo; t <= now; t++) r.push({ t, y: S.sensor[t] }); return r;
+  }
+  function prepare() {
+    rows = windowRows(); const ts_ = rows.map(r => r.t); tm = mean(ts_);
+    ts = Math.sqrt(ts_.reduce((s, v) => s + (v - tm) ** 2, 0) / Math.max(1, ts_.length - 1)) || 1;
+    rows.forEach(r => r.z = (r.t - tm) / ts);
+  }
+  const predictZ = z => model.b + model.w * z;
+  function olsOn(r) {   // closed form in original units
+    const n = r.length, mt = mean(r.map(p => p.t)), my = mean(r.map(p => p.y));
+    let sxx = 0, sxy = 0; r.forEach(p => { sxx += (p.t - mt) ** 2; sxy += (p.t - mt) * (p.y - my); });
+    const b1 = sxx > 1e-9 ? sxy / sxx : 0; return { b1, b0: my - b1 * mt };
+  }
+  function coefs() { const b1 = model.w / ts; return { b1, b0: model.b - b1 * tm }; }
+  function metricsOf(set, f) {
+    if (!set.length) return null;
+    let se = 0, ae = 0, pe = 0, pn = 0; const my = mean(set.map(p => p.y));
+    set.forEach(p => { const e = p.y - f(p); se += e * e; ae += Math.abs(e); if (Math.abs(p.y) > 1e-6) { pe += Math.abs(e / p.y); pn++; } });
+    const n = set.length, mse = se / n, sst = set.reduce((s, p) => s + (p.y - my) ** 2, 0) / n;
+    return { mse, rmse: Math.sqrt(mse), mae: ae / n, mape: pn ? 100 * pe / pn : NaN, r2: sst > 1e-9 ? 1 - mse / sst : NaN };
+  }
+  function gradient() {
+    const n = rows.length; let gw = 0, gb = 0;
+    rows.forEach(r => { const e = r.y - predictZ(r.z); gw += -2 * r.z * e; gb += -2 * e; });
+    return { gw: gw / n, gb: gb / n };
+  }
+  function solveExact() {
+    const my = mean(rows.map(r => r.y)); let szz = 0, szy = 0; rows.forEach(r => { szz += r.z * r.z; szy += r.z * (r.y - my); });
+    return { w: szz > 1e-9 ? szy / szz : 0, b: my };
+  }
+  function evalFit() { const { b0, b1 } = coefs(); return metricsOf(rows, r => b0 + b1 * r.t); }
+  function evalNext() {
+    const { b0, b1 } = coefs(), nx = []; for (let t = S.now + 1; t <= Math.min(S.now + 30, N - 1); t++) nx.push({ t, y: S.sensor[t] });
+    return metricsOf(nx, p => b0 + b1 * p.t);
+  }
+  function optMse() { const sv = [model.w, model.b], s = solveExact(); model.w = s.w; model.b = s.b; const m = evalFit().mse; [model.w, model.b] = sv; return m; }
+
+  // ---------- predictions / decision ----------
+  function predictions() {
+    if (!model.trained) return null;
+    const { b0, b1 } = coefs(), down = b1 < -1e-9;
+    const tFail = down ? (FAIL - b0) / b1 : Infinity, tTheta = down ? (S.theta - b0) / b1 : Infinity;
+    // standard error of the extrapolated crossing time (delta method on the regression line)
+    const n = rows.length, mt = mean(rows.map(r => r.t));
+    let sse = 0, sxx = 0; rows.forEach(r => { const e = r.y - (b0 + b1 * r.t); sse += e * e; sxx += (r.t - mt) ** 2; });
+    const sr = n > 2 ? Math.sqrt(sse / (n - 2)) : 1, se = t => down ? Math.max(1, sr / Math.abs(b1) * Math.sqrt(1 / n + (t - mt) ** 2 / Math.max(sxx, 1e-9))) : 1;
+    return { b0, b1, down, tFail, tTheta, rulHat: tFail - S.now, plan: Math.max(S.now, tTheta), seFail: se(tFail) };
+  }
+  const phi = z => Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+  const Phi = z => { const t = 1 / (1 + 0.2316419 * Math.abs(z)), d = phi(z), p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429)))); return z > 0 ? 1 - p : p; };
+  // expected cost of repairing at time tp when the failure time is T ~ Normal(mu, se) — uses only what the model knows (no peeking at the truth)
+  function expectedCost(tp, mu, se) {
+    if (!isFinite(mu) || !isFinite(tp)) return S.cf;
+    const z = (mu - tp) / se, pOk = Phi(z), eWaste = se * (phi(z) + z * pOk);
+    return (1 - pOk) * S.cf + pOk * S.cp + S.cw * eWaste;
+  }
+  function costFor(plan) {
+    if (!isFinite(plan) || plan >= S.Tf) return { fail: true, total: S.cf };
+    return { fail: false, total: S.cp + S.cw * (S.Tf - plan), wasted: S.Tf - plan };
+  }
+
+  // ---------- canvases ----------
+  const cv = $("chart"), cx = cv.getContext("2d"), lc = $("lossChart"), lx = lc.getContext("2d"), rc = $("rulChart"), rx = rc.getContext("2d"), cc = $("costChart"), ccx = cc.getContext("2d");
+  const PAD = { l: 38, r: 12, t: 12, b: 28 };
+  let W = 0, H = 0, LW = 0, LH = 0, RW = 0, RH = 0, CW = 0, CH = 0, scrub = false;
+  const sx = t => PAD.l + t / (N - 1) * (W - PAD.l - PAD.r);
+  const sy = v => H - PAD.b - v / 100 * (H - PAD.t - PAD.b);
+  const ix = px => (px - PAD.l) / (W - PAD.l - PAD.r) * (N - 1);
+  function fit(c, ctx) { const d = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight; c.width = Math.round(w * d); c.height = Math.round(h * d); ctx.setTransform(d, 0, 0, d, 0, 0); return [w, h]; }
+  function resize() { [W, H] = fit(cv, cx); [LW, LH] = fit(lc, lx); [RW, RH] = fit(rc, rx); [CW, CH] = fit(cc, ccx); draw(); drawLoss(); drawRul(); drawCost(); }
+
+  function axes(ctx, w, h, P, xmax, ymax, xt, yt, xl, yl) {
+    ctx.font = "11px system-ui, sans-serif"; ctx.textBaseline = "middle"; ctx.strokeStyle = "#eef0f4"; ctx.fillStyle = "#6b7280"; ctx.lineWidth = 1;
+    const X = v => P.l + v / xmax * (w - P.l - P.r), Y = v => h - P.b - v / ymax * (h - P.t - P.b);
+    ctx.textAlign = "right"; for (let v = 0; v <= ymax + 1e-9; v += yt) { ctx.beginPath(); ctx.moveTo(P.l, Y(v)); ctx.lineTo(w - P.r, Y(v)); ctx.stroke(); ctx.fillText(Math.round(v), P.l - 6, Y(v)); }
+    ctx.textAlign = "center"; for (let v = 0; v <= xmax + 1e-9; v += xt) { ctx.beginPath(); ctx.moveTo(X(v), P.t); ctx.lineTo(X(v), h - P.b); ctx.stroke(); ctx.fillText(Math.round(v), X(v), h - P.b + 12); }
+    ctx.strokeStyle = "#9ca3af"; ctx.strokeRect(P.l, P.t, w - P.l - P.r, h - P.t - P.b);
+    ctx.fillStyle = "#374151"; ctx.textAlign = "right"; ctx.fillText(xl, w - P.r - 2, h - P.b - 9); ctx.textAlign = "left"; ctx.fillText(yl, 4, P.t + 4);
+    return { X, Y };
+  }
+
+  function draw() {
+    cx.clearRect(0, 0, W, H);
+    axes(cx, W, H, PAD, N - 1, 100, 50, 20, "t (hours)", "health");
+    cx.save(); cx.beginPath(); cx.rect(PAD.l, PAD.t, W - PAD.l - PAD.r, H - PAD.t - PAD.b); cx.clip();
+    // fit window
+    const lo = Math.max(0, S.now - S.win + 1);
+    cx.fillStyle = "rgba(37,99,235,.07)"; cx.fillRect(sx(lo), PAD.t, sx(S.now) - sx(lo), H - PAD.t - PAD.b);
+    // thresholds
+    cx.lineWidth = 1.5; cx.setLineDash([6, 4]);
+    cx.strokeStyle = "#d97706"; cx.beginPath(); cx.moveTo(PAD.l, sy(S.theta)); cx.lineTo(W - PAD.r, sy(S.theta)); cx.stroke();
+    cx.strokeStyle = "#dc2626"; cx.beginPath(); cx.moveTo(PAD.l, sy(FAIL)); cx.lineTo(W - PAD.r, sy(FAIL)); cx.stroke(); cx.setLineDash([]);
+    cx.font = "11px system-ui, sans-serif"; cx.textAlign = "left"; cx.fillStyle = "#b45309"; cx.fillText("threshold θ = " + S.theta, PAD.l + 6, sy(S.theta) - 7);
+    cx.fillStyle = "#dc2626"; cx.fillText("failure", PAD.l + 6, sy(FAIL) - 7);
+    const rev = $("reveal").checked;
+    if (rev) {   // true future
+      cx.strokeStyle = "#cbd5e1"; cx.lineWidth = 1.5; cx.beginPath(); S.h.forEach((v, t) => t ? cx.lineTo(sx(t), sy(v)) : cx.moveTo(sx(t), sy(v))); cx.stroke();
+      cx.fillStyle = "rgba(148,163,184,.55)"; for (let t = S.now + 1; t < Math.min(N, S.Tf + 15); t++) { cx.beginPath(); cx.arc(sx(t), sy(S.sensor[t]), 2, 0, 7); cx.fill(); }
+    }
+    // known readings
+    cx.fillStyle = "rgba(15,118,110,.85)"; for (let t = 0; t <= S.now; t++) { cx.beginPath(); cx.arc(sx(t), sy(S.sensor[t]), t >= lo ? 2.8 : 2, 0, 7); cx.fill(); }
+    // fitted trend
+    const P = predictions();
+    if (P && $("showFit").checked) {
+      const line = (a, b) => { cx.beginPath(); cx.moveTo(sx(a), sy(P.b0 + P.b1 * a)); cx.lineTo(sx(b), sy(P.b0 + P.b1 * b)); cx.stroke(); };
+      cx.strokeStyle = "#2563eb"; cx.lineWidth = 3; line(lo, S.now);
+      const end = Math.min(N - 1, isFinite(P.tFail) ? P.tFail : N - 1); cx.lineWidth = 2; cx.setLineDash([6, 4]); line(S.now, end); cx.setLineDash([]);
+      // markers
+      const mark = (t, v, col, shape) => { if (!isFinite(t) || t > N - 1) return; const x = sx(t), y = sy(v); cx.strokeStyle = col; cx.fillStyle = col; cx.lineWidth = 2;
+        if (shape === "d") { cx.beginPath(); cx.moveTo(x, y - 7); cx.lineTo(x + 7, y); cx.lineTo(x, y + 7); cx.lineTo(x - 7, y); cx.closePath(); cx.fill(); }
+        else { cx.beginPath(); cx.moveTo(x - 6, y - 6); cx.lineTo(x + 6, y + 6); cx.moveTo(x + 6, y - 6); cx.lineTo(x - 6, y + 6); cx.stroke(); } };
+      if (isFinite(P.tTheta)) { cx.setLineDash([2, 3]); cx.strokeStyle = "#d97706"; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(sx(P.plan), PAD.t); cx.lineTo(sx(P.plan), H - PAD.b); cx.stroke(); cx.setLineDash([]); }
+      mark(P.plan, S.theta, "#d97706", "d"); mark(P.tFail, FAIL, "#2563eb", "x");
+    }
+    if (rev) { cx.strokeStyle = "#dc2626"; cx.lineWidth = 3; const x = sx(S.Tf), y = sy(FAIL); cx.beginPath(); cx.moveTo(x - 7, y - 7); cx.lineTo(x + 7, y + 7); cx.moveTo(x + 7, y - 7); cx.lineTo(x - 7, y + 7); cx.stroke(); }
+    // now line
+    cx.strokeStyle = "#111827"; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(sx(S.now), PAD.t); cx.lineTo(sx(S.now), H - PAD.b); cx.stroke();
+    cx.fillStyle = "#111827"; cx.textAlign = "center"; cx.fillText("now", sx(S.now), PAD.t + 9);
+    cx.restore(); cx.lineWidth = 1;
+  }
+
+  function drawLoss() {
+    lx.clearRect(0, 0, LW, LH);
+    const P = { l: 52, r: 10, t: 10, b: 24 }, hist = model.history, log = $("logLoss").checked;
+    lx.font = "11px system-ui, sans-serif"; lx.fillStyle = "#6b7280"; lx.strokeStyle = "#9ca3af"; lx.strokeRect(P.l, P.t, LW - P.l - P.r, LH - P.t - P.b);
+    if (!hist.length || !hist.every(isFinite)) { lx.textAlign = "center"; lx.textBaseline = "middle"; lx.fillText(hist.length ? "diverged" : "no data", LW / 2, LH / 2); return; }
+    const opt = optMse(), f = v => log ? Math.log10(Math.max(v, 1e-6)) : v;
+    let lo = Math.min(...hist.map(f), f(opt)), hi = Math.max(...hist.map(f)); if (!log) lo = Math.min(lo, 0); if (hi - lo < 1e-9) hi = lo + 1;
+    const n = hist.length, span = Math.max(n - 1, 1), X = i => P.l + i / span * (LW - P.l - P.r), Yp = v => LH - P.b - (f(v) - lo) / (hi - lo) * (LH - P.t - P.b);
+    lx.textAlign = "right"; lx.textBaseline = "middle"; const lab = v => log ? "10^" + v.toFixed(1) : fmt(v, 1);
+    lx.fillText(lab(hi), P.l - 5, P.t + 4); lx.fillText(lab(lo), P.l - 5, LH - P.b - 4);
+    lx.textAlign = "left"; lx.textBaseline = "top"; lx.fillText("0", P.l, LH - P.b + 6); lx.textAlign = "right"; lx.fillText("iter " + (n - 1), LW - P.r, LH - P.b + 6);
+    lx.strokeStyle = "#9333ea"; lx.setLineDash([5, 4]); lx.beginPath(); lx.moveTo(P.l, Yp(opt)); lx.lineTo(LW - P.r, Yp(opt)); lx.stroke(); lx.setLineDash([]);
+    const stride = Math.max(1, Math.floor(n / 600)); lx.strokeStyle = "#2563eb"; lx.lineWidth = 2; lx.beginPath();
+    for (let i = 0; i < n; i += stride) i ? lx.lineTo(X(i), Yp(hist[i])) : lx.moveTo(X(i), Yp(hist[i])); lx.lineTo(X(n - 1), Yp(hist[n - 1])); lx.stroke(); lx.lineWidth = 1;
+  }
+
+  // RUL tracking: re-fit on the last `win` points at each moment; closed form
+  function drawRul() {
+    rx.clearRect(0, 0, RW, RH);
+    const P = { l: 38, r: 12, t: 10, b: 26 }, ymax = Math.ceil(S.Tf / 50) * 50, { X, Y } = axes(rx, RW, RH, P, N - 1, ymax, 50, 50, "t (hours)", "RUL (h)");
+    rx.save(); rx.beginPath(); rx.rect(P.l, P.t, RW - P.l - P.r, RH - P.t - P.b); rx.clip();
+    rx.strokeStyle = "#9ca3af"; rx.setLineDash([6, 4]); rx.lineWidth = 2; rx.beginPath(); rx.moveTo(X(0), Y(S.Tf)); rx.lineTo(X(S.Tf), Y(0)); rx.stroke(); rx.setLineDash([]);
+    rx.strokeStyle = "#2563eb"; rx.lineWidth = 2; rx.beginPath(); let started = false;
+    for (let tau = 12; tau < S.Tf; tau++) {
+      const o = olsOn(windowRows(tau, S.win)); if (o.b1 >= -1e-9) { started = false; continue; }
+      const rul = clamp(-o.b0 / o.b1 - tau, -ymax, 2 * ymax);
+      started ? rx.lineTo(X(tau), Y(rul)) : rx.moveTo(X(tau), Y(rul)); started = true;
+    }
+    rx.stroke();
+    rx.strokeStyle = "#111827"; rx.lineWidth = 1.5; rx.beginPath(); rx.moveTo(X(S.now), P.t); rx.lineTo(X(S.now), RH - P.b); rx.stroke();
+    const Pr = predictions(); if (Pr && isFinite(Pr.rulHat)) { rx.fillStyle = "#2563eb"; rx.beginPath(); rx.arc(X(S.now), Y(clamp(Pr.rulHat, -ymax, 2 * ymax)), 5, 0, 7); rx.fill(); }
+    rx.restore(); rx.lineWidth = 1;
+  }
+
+  // cost vs threshold
+  function drawCost() {
+    ccx.clearRect(0, 0, CW, CH);
+    const P = { l: 52, r: 12, t: 10, b: 26 }, pr = predictions(), rev = $("reveal").checked;
+    ccx.font = "11px system-ui, sans-serif"; ccx.textBaseline = "middle";
+    if (!pr) { ccx.fillStyle = "#6b7280"; ccx.textAlign = "center"; ccx.fillText("fit a trend first (press Solve instantly)", CW / 2, CH / 2); ccx.strokeStyle = "#9ca3af"; ccx.strokeRect(P.l, P.t, CW - P.l - P.r, CH - P.t - P.b); return; }
+    const planOf = th => pr.down ? Math.max(S.now, (th - pr.b0) / pr.b1) : Infinity;
+    const expc = [], actc = [];
+    for (let th = 0; th <= 100; th++) { const plan = planOf(th); expc.push(pr.down ? expectedCost(plan, pr.tFail, pr.seFail) : S.cf); actc.push(costFor(plan).total); }
+    const hi = Math.max(...expc, ...(rev ? actc : [0])) * 1.1, lo = 0, X = th => P.l + th / 100 * (CW - P.l - P.r), Y = v => CH - P.b - (v - lo) / (hi - lo) * (CH - P.t - P.b);
+    ccx.strokeStyle = "#eef0f4"; ccx.fillStyle = "#6b7280"; ccx.textAlign = "right";
+    for (let k = 0; k <= 4; k++) { const v = hi * k / 4; ccx.beginPath(); ccx.moveTo(P.l, Y(v)); ccx.lineTo(CW - P.r, Y(v)); ccx.stroke(); ccx.fillText(money(v), P.l - 5, Y(v)); }
+    ccx.textAlign = "center"; for (let th = 0; th <= 100; th += 20) ccx.fillText(th, X(th), CH - P.b + 12);
+    ccx.strokeStyle = "#9ca3af"; ccx.strokeRect(P.l, P.t, CW - P.l - P.r, CH - P.t - P.b); ccx.fillStyle = "#374151"; ccx.textAlign = "right"; ccx.fillText("threshold θ (health)", CW - P.r - 2, CH - P.b - 9);
+    if (rev) { ccx.strokeStyle = "#94a3b8"; ccx.setLineDash([5, 4]); ccx.lineWidth = 1.5; ccx.beginPath(); actc.forEach((c, th) => th ? ccx.lineTo(X(th), Y(c)) : ccx.moveTo(X(th), Y(c))); ccx.stroke(); ccx.setLineDash([]); }
+    ccx.strokeStyle = "#2563eb"; ccx.lineWidth = 2.5; ccx.beginPath(); expc.forEach((c, th) => th ? ccx.lineTo(X(th), Y(c)) : ccx.moveTo(X(th), Y(c))); ccx.stroke(); ccx.lineWidth = 1;
+    const best = expc.indexOf(Math.min(...expc));
+    ccx.fillStyle = "#059669"; ccx.beginPath(); ccx.arc(X(best), Y(expc[best]), 5, 0, 7); ccx.fill(); ccx.textAlign = best > 60 ? "right" : "left"; ccx.fillText("best θ = " + best + "  (" + money(expc[best]) + ")", X(best) + (best > 60 ? -8 : 8), Y(expc[best]) - 9);
+    const cu = S.theta, yc = Y(expc[cu]); ccx.fillStyle = "#d97706"; ccx.beginPath(); ccx.moveTo(X(cu), yc - 8); ccx.lineTo(X(cu) + 6, yc); ccx.lineTo(X(cu), yc + 8); ccx.lineTo(X(cu) - 6, yc); ccx.closePath(); ccx.fill();
+    if (rev) { const ba = actc.indexOf(Math.min(...actc)); ccx.fillStyle = "#64748b"; ccx.textAlign = "left"; ccx.fillText("hindsight best θ = " + ba, P.l + 8, P.t + 10); }
+  }
+
+  function renderTable(P) {
+    const rev = $("reveal").checked, lo = Math.max(0, S.now - S.win + 1), co = P ? { b0: P.b0, b1: P.b1 } : null;
+    let h = `<thead><tr><th>t<small>hours</small></th><th>reading<small>health</small></th><th>fitted<small>trend</small></th><th>residual<small>reading − fitted</small></th>${rev ? "<th>true health<small>hidden in practice</small></th>" : ""}</tr></thead><tbody>`;
+    for (let t = S.now; t >= 0; t--) {
+      const fv = co ? co.b0 + co.b1 * t : null;
+      h += `<tr class="${t === S.now ? "cur" : t >= lo ? "win" : ""}"><td>${t}</td><td>${S.sensor[t].toFixed(1)}</td><td>${fv == null || t < lo ? "–" : fv.toFixed(1)}</td><td>${fv == null || t < lo ? "–" : (S.sensor[t] - fv).toFixed(1)}</td>${rev ? `<td>${S.h[t].toFixed(1)}</td>` : ""}</tr>`;
+    }
+    $("table").innerHTML = h + "</tbody>"; $("tblInfo").textContent = `${S.now + 1} readings · ${S.now - lo + 1} in fit window`;
+  }
+
+  // ---------- refresh ----------
+  function setStatus(msg, cls = "") { const s = $("status"); s.className = cls; s.innerHTML = msg; }
+  function refresh() {
+    $("nowVal").textContent = S.now; $("thetaVal").textContent = S.theta; $("winVal").textContent = S.win; $("winHint").textContent = S.win;
+    $("iter").textContent = model.iter; $("nWin").textContent = rows.length;
+    const P = predictions(), m = evalFit(), nx = evalNext();
+    const put = (pre, mm) => { const k = (id, v) => $(pre + id).textContent = v;
+      if (!mm) { ["mae", "rmse", "mape", "mse", "r2"].forEach(x => k(x, "–")); return; }
+      k("mae", fmt(mm.mae)); k("rmse", fmt(mm.rmse)); k("mse", fmt(mm.mse)); k("r2", fmt(mm.r2)); k("mape", isFinite(mm.mape) ? fmt(mm.mape, 1) + " %" : "n/a"); };
+    put("", model.trained ? m : null); put("n", model.trained ? nx : null);
+    const { b0, b1 } = coefs();
+    $("equation").textContent = model.trained ? `health(t) = ${fmt(b0, 2)} ${b1 < 0 ? "−" : "+"} ${fmt(Math.abs(b1), 4)}·t` : "health(t) = β₀ + β₁·t  (not fitted yet)";
+    const rev = $("reveal").checked, trueRul = S.Tf - S.now;
+    if (!P) $("summary").innerHTML = "Press <b>Solve instantly</b> or <b>Train</b> to fit the trend.";
+    else {
+      let h = `Health drops about <b>${fmt(Math.abs(P.b1) * 24, 2)}</b> points per 24 h.<br>`;
+      if (!P.down) h += `The trend is <b>not decreasing</b> — no failure is predicted.`;
+      else {
+        h += `Predicted failure at <b>t ≈ ${fmt(P.tFail, 0)}</b> h → predicted RUL <b>${fmt(P.rulHat, 0)} h</b>.<br>Repair planned at <b>t ≈ ${fmt(P.plan, 0)}</b> h (when health reaches θ = ${S.theta}).`;
+      }
+      if (rev) { const err = Math.round(P.rulHat - trueRul); h += `<br>Truth: failure at <b>t = ${S.Tf}</b> h → actual RUL <b>${trueRul} h</b>.` + (isFinite(err) ? ` RUL error = <b class="${err > 0 ? "badc" : "amberc"}">${err > 0 ? "+" : ""}${fmt(err, 0)} h</b> (${err > 0 ? "too optimistic" : "too pessimistic"}).` : ""); }
+      $("summary").innerHTML = h;
+    }
+    // cost box
+    const box = $("costBox");
+    if (!P) { box.className = ""; box.textContent = "Fit a trend first (press Solve instantly)."; }
+    else {
+      const ec = P.down ? expectedCost(P.plan, P.tFail, P.seFail) : S.cf;
+      let h = `<b>Expected cost at θ = ${S.theta}:</b> <span class="total amberc" style="font-size:20px">${money(ec)}</span><br><span style="color:var(--muted);font-size:12.5px">${P.down ? `Planned repair at t ≈ ${fmt(P.plan, 0)} h; predicted failure ${fmt(P.tFail, 0)} ± ${fmt(P.seFail, 0)} h. Computed only from the fitted trend and its uncertainty — no peeking at the future.` : "No downward trend, so no repair is planned."}</span>`;
+      if (rev) {
+        const c = costFor(P.down ? P.plan : Infinity);
+        h += `<hr style="border:0;border-top:1px solid var(--line);margin:10px 0">` + (c.fail
+          ? `<b class="badc">💥 Actual outcome: breakdown!</b> The machine failed at t = ${S.Tf} h before the planned repair.<div class="total badc">${money(c.total)}</div>`
+          : `<b class="good">✅ Actual outcome: repaired in time</b> at t ≈ ${fmt(P.plan, 0)} h, <b>${fmt(c.wasted, 0)} h</b> before failure (wasted life).<div class="total good">${money(c.total)}</div><span style="color:var(--muted);font-size:12.5px">= preventive ${money(S.cp)} + wasted ${fmt(c.wasted, 0)} h × ${money(S.cw)}. Perfect timing would cost ${money(S.cp)}.</span>`);
+        box.className = c.fail ? "fail" : "okc";
+      } else { h += `<div style="color:var(--muted);font-size:12.5px;margin-top:6px">Tick “reveal the true future” to see what actually happens.</div>`; box.className = ""; }
+      box.innerHTML = h;
+    }
+    renderTable(P);
+    $("optMse").textContent = fmt(optMse());
+    draw(); drawLoss(); drawRul(); drawCost();
+  }
+
+  // ---------- training ----------
+  function stop() { model.playing = false; $("playBtn").textContent = "▶ Train"; }
+  function pushHist() { model.history.push(evalFit().mse); }
+  function doSolve() { const s = solveExact(); model.w = s.w; model.b = s.b; model.trained = true; model.converged = true; model.diverged = false; model.iter++; pushHist(); }
+  function resetModel(msg, forceZero) {
+    stop(); prepare(); model.w = 0; model.b = 0; model.iter = 0; model.converged = false; model.diverged = false; model.trained = false; model.history = [evalFit().mse];
+    if (S.live && !forceZero) { doSolve(); model.history = [model.history[model.history.length - 1]]; model.iter = 0; }
+    if (msg) setStatus(msg); refresh();
+  }
+  function manualMode() { if ($("live").checked) { $("live").checked = false; S.live = false; resetModel("Live refit turned off — training from zero with gradient descent.", true); } }
+  function step() {
+    const { gw, gb } = gradient(); model.w -= model.lr * gw; model.b -= model.lr * gb; model.iter++; model.trained = true; pushHist();
+    const mse = model.history[model.history.length - 1];
+    if (!isFinite(mse) || mse > 1e12) { model.diverged = true; stop(); setStatus("💥 Diverged — the learning rate is too large. Press <b>Reset</b> and lower α.", "err"); return false; }
+    if (Math.hypot(gw, gb) < 1e-3 || model.iter >= 20000) { model.converged = true; stop(); setStatus("✅ Converged — see the trend line and the predictions.", "ok"); return false; }
+    return true;
+  }
+  function frame() { if (!model.playing) return; let ok = true; for (let i = 0; i < +$("spSlider").value && ok; i++) ok = step(); if (ok) setStatus(`Training… MSE = ${fmt(model.history[model.history.length - 1])}`); refresh(); if (model.playing) requestAnimationFrame(frame); }
+  $("playBtn").onclick = () => {
+    if (model.playing) { stop(); setStatus("Paused."); return; }
+    manualMode(); if (model.converged || model.diverged) resetModel(null, true);
+    model.playing = true; $("playBtn").textContent = "⏸ Pause"; requestAnimationFrame(frame);
+  };
+  $("stepBtn").onclick = () => { stop(); manualMode(); if (model.converged || model.diverged) resetModel(null, true); if (step()) setStatus(`Step ${model.iter}.`); refresh(); };
+  $("solveBtn").onclick = () => { stop(); doSolve(); setStatus("✅ Solved with the exact formula.", "ok"); refresh(); };
+  $("resetBtn").onclick = () => { $("live").checked = false; S.live = false; resetModel("Model reset to zeros (live refit off). Press Train to watch gradient descent.", true); };
+  $("live").onchange = e => { S.live = e.target.checked; resetModel(S.live ? "Live refit on." : "Live refit off."); };
+  $("lrSlider").oninput = e => { model.lr = +e.target.value; $("lrVal").textContent = model.lr.toFixed(3); };
+  $("spSlider").oninput = e => $("spVal").textContent = e.target.value;
+  $("logLoss").onchange = drawLoss;
+
+  // ---------- interaction ----------
+  const posX = e => e.clientX - cv.getBoundingClientRect().left;
+  function setNow(t) { S.now = clamp(Math.round(t), 15, S.Tf - 1); $("nowSlider").value = S.now; resetModel(); }
+  cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); scrub = true; stop(); setNow(ix(posX(e))); });
+  cv.addEventListener("pointermove", e => { if (scrub) setNow(ix(posX(e))); });
+  const endScrub = () => scrub = false; cv.addEventListener("pointerup", endScrub); cv.addEventListener("pointercancel", endScrub);
+  $("nowSlider").oninput = e => { stop(); setNow(+e.target.value); };
+  $("thetaSlider").oninput = e => { S.theta = +e.target.value; refresh(); };
+  $("winSlider").oninput = e => { S.win = +e.target.value; stop(); resetModel(); };
+  $("cpSlider").oninput = e => { S.cp = +e.target.value; $("cpVal").textContent = S.cp; refresh(); };
+  $("cfSlider").oninput = e => { S.cf = +e.target.value; $("cfVal").textContent = S.cf; refresh(); };
+  $("cwSlider").oninput = e => { S.cw = +e.target.value; $("cwVal").textContent = S.cw; refresh(); };
+  $("noiseSlider").oninput = e => { S.noise = +e.target.value; $("noiseVal").textContent = S.noise.toFixed(1); makeSensor(); stop(); resetModel(); };
+  $("reveal").onchange = refresh; $("showFit").onchange = draw;
+  const box = $("patterns");
+  Object.entries(PATTERNS).forEach(([k, P]) => { const b = document.createElement("button"); b.textContent = P.label; b.dataset.k = k; b.onclick = () => selectPattern(k); box.appendChild(b); });
+  function selectPattern(k) {
+    S.key = k; document.querySelectorAll("#patterns button").forEach(b => b.classList.toggle("on", b.dataset.k === k));
+    $("patDesc").textContent = PATTERNS[k].desc; generate(); stop(); resetModel("New machine generated.");
+  }
+  $("regen").onclick = () => selectPattern(S.key);
+
+  // ---------- init ----------
+  const layout = () => document.documentElement.style.setProperty("--hh", $("top").offsetHeight + "px");
+  window.addEventListener("resize", () => { layout(); resize(); });
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv);
+  layout(); $("lrSlider").dispatchEvent(new Event("input"));
+  selectPattern("accel"); resize();
+  window.addEventListener("load", () => { layout(); resize(); });
+})();
+</script>
+</body>
+</html>

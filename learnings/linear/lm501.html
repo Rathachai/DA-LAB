@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LM501 – Remaining Useful Life (RUL) from Sensors</title>
+<link rel="icon" type="image/svg+xml" href="https://rathachai.github.io/assets/favicon.svg">
+<style>
+:root{
+  --bg:#f4f6fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#2563eb; --brand2:#1d4ed8; --accent:#f59e0b; --good:#059669; --bad:#dc2626; --opt:#9333ea;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;min-height:100vh;font-size:15px;line-height:1.45}
+
+header{position:relative;color:#fff;background:#1e3a8a url("https://rathachai.github.io/images/banner.jpg") center center/cover no-repeat;flex:0 0 auto}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.82),rgba(15,23,42,.45))}
+.head-inner{position:relative;padding:8px 20px;max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{height:24px;width:auto;display:block}
+h1{margin:0;font-size:clamp(17px,2.4vw,22px);font-weight:700;line-height:1.2}
+header p{margin:2px 0 0;max-width:720px;font-size:12.5px;opacity:.95;line-height:1.35}
+.credit{font-size:12px;color:#e5e7eb;text-align:right;white-space:nowrap;opacity:.9}
+.credit a{color:#fff;font-weight:600;text-decoration:none}
+.credit a:hover{text-decoration:underline}
+
+main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1.05fr .95fr;gap:16px;padding:16px;max-width:1400px;width:100%;margin:0 auto}
+.pane{overflow-y:auto;min-height:0;padding-right:4px;display:flex;flex-direction:column;gap:14px;height:calc(100vh - var(--hh,70px) - 32px);min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
+.card h2{margin:0 0 8px;font-size:16px}
+.card h2 small{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+.pane-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 -4px}
+
+canvas{display:block;width:100%;border-radius:8px;background:#fff;border:1px solid var(--line)}
+#corrChart{aspect-ratio:16/9;max-height:300px}
+#lossChart{aspect-ratio:16/8}
+
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.row label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.field{display:flex;flex-direction:column;gap:2px;flex:1 1 150px;min-width:130px}
+.field .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.field .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--brand)}
+button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer;transition:.12s}
+button:hover{border-color:var(--brand);color:var(--brand)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.primary:hover{background:var(--brand2);color:#fff}
+button.warn{background:var(--accent);border-color:var(--accent);color:#fff}
+button.small{padding:4px 8px;font-size:12.5px}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.tabs{display:flex;gap:4px;margin:0 0 10px;border-bottom:2px solid var(--line)}
+.tabs button{border:0;border-bottom:3px solid transparent;border-radius:6px 6px 0 0;margin-bottom:-2px;background:none;color:var(--muted);font-weight:600;padding:8px 12px}
+.tabs button.on{color:var(--brand2);border-bottom-color:var(--brand);background:#eff6ff}
+.corrinfo{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:13px;margin-top:8px}
+.corrinfo b{font-family:ui-monospace,Menlo,Consolas,monospace}
+
+/* data table */
+.tablewrap{max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table.data{border-collapse:separate;border-spacing:0;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+table.data th,table.data td{padding:4px 8px;text-align:right;border-bottom:1px solid #f0f1f4;white-space:nowrap}
+table.data thead th{position:sticky;top:0;background:#f8fafc;z-index:2;border-bottom:2px solid var(--line);vertical-align:top;padding:6px 6px}
+table.data th .hb{display:block;width:100%;font-weight:700;padding:4px 6px;font-size:13px}
+table.data th .hb.on{background:#dbeafe;border-color:var(--brand);color:var(--brand2)}
+table.data th label{display:flex;align-items:center;justify-content:center;gap:4px;font-size:11.5px;color:var(--muted);margin-top:4px;cursor:pointer}
+table.data th .rr{font-size:11.5px;font-family:ui-monospace,Menlo,Consolas,monospace;text-align:center;margin-top:2px}
+table.data td.sel{background:#eff6ff}
+table.data tbody tr:nth-child(even) td:not(.sel){background:#fafbfc}
+table.data tbody tr.te td,table.data tbody tr.te:nth-child(even) td:not(.sel){background:#fff4d6 !important}
+.splitbar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:8px 0 2px;background:#eee}
+#barTrain{background:#0f766e;transition:width .15s}#barTest{background:#d97706;transition:width .15s}
+table.mini tr.stale td{color:#9ca3af;font-style:italic}
+#gap{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+#gap.bad{background:#fffbeb;color:#92400e}
+.pos{color:#0f766e}.neg{color:#dc2626}
+
+/* right */
+.equation{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(14px,2.2vw,17px);font-weight:600;color:var(--brand);padding:6px 2px;word-break:break-word;line-height:1.6}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kv .k{font-size:12px;color:var(--muted)}
+.kv .v{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.metric{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff}
+.metric .name{font-weight:700;font-size:13px}
+.metric .val{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:19px;font-weight:700;color:var(--brand2);font-variant-numeric:tabular-nums}
+.metric .desc{font-size:11.5px;color:var(--muted);line-height:1.3}
+#status{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+#status.ok{background:#ecfdf5;color:#065f46}
+#status.err{background:#fef2f2;color:#991b1b}
+#status.warn{background:#fffbeb;color:#92400e}
+table.mini{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+table.mini th,table.mini td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right}
+table.mini th:first-child,table.mini td:first-child{text-align:left}
+table.mini th{color:var(--muted);font-weight:600;font-size:12px}
+table.mini tr.best td{background:#ecfdf5;font-weight:700}
+.scroll-x{overflow-x:auto}
+.card ol,.card ul{margin:6px 0 0;padding-left:20px;font-size:13.5px}
+.card code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12.5px}
+
+@media (max-width:860px){
+  main{display:block;padding:12px}
+  .pane{height:auto;overflow:visible;padding:0}
+  .pane + .pane{margin-top:14px}
+  .head-inner{padding:8px 14px;flex-direction:column;align-items:flex-start;gap:4px}
+  .credit{text-align:left;white-space:normal;font-size:11.5px}
+  .tablewrap{max-height:360px}
+}
+table.data th .sub{display:block;font-size:10.5px;font-weight:400;color:var(--muted);text-align:center;white-space:normal;line-height:1.2;max-width:84px;margin:0 auto}
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border:0;border-radius:0;background:#fff;font-weight:600;color:var(--muted)}
+.seg button.on{background:#dbeafe;color:var(--brand2)}
+.seg button.leaky.on{background:#fef3c7;color:#92400e}
+.note{font-size:13px;padding:8px 10px;border-radius:8px;background:#f8fafc;border:1px solid var(--line);margin-top:10px}
+.note.leak{background:#fffbeb;border-color:#fde68a;color:#92400e}
+.note.ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
+#tsMach{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;font-size:12px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--ink)}
+.chip i{display:inline-block;width:14px;height:0;border-top:1px solid}
+.chip.y i{border-top-width:2px}
+.chip.off{opacity:.4}
+</style>
+</head>
+<body>
+
+<header id="top">
+  <div class="head-inner">
+    <div>
+      <div class="brand">
+        <img src="https://rathachai.github.io/assets/logo.svg" alt="Logo">
+        <h1>LM501 · Remaining Useful Life (RUL) from Sensors</h1>
+      </div>
+      <p>Predict the hours until failure from 7 sensors. Then learn the key lesson: split train/test <b>by machine</b>, not by row.</p>
+    </div>
+    <div class="credit">Powered by: Sonnet &nbsp;|&nbsp; AI Whisperer: <a href="https://rathachai.github.io" target="_blank" rel="noopener">rathachai.github.io</a></div>
+  </div>
+</header>
+
+<main>
+  <section class="pane">
+    <p class="pane-title">① Explore the data &amp; split it</p>
+
+    <div class="card">
+      <div class="tabs" role="tablist">
+        <button id="tab0" class="on" role="tab">① Sensors over time</button>
+        <button id="tab1" role="tab">② Correlation with y <small id="corrTitle" style="font-weight:400"></small></button>
+        <button id="tab2" role="tab">③ y vs. ŷ (model)</button>
+      </div>
+      <div id="tsBox" class="row" style="margin:0 0 8px;align-items:flex-start">
+        <label>Machine
+          <select id="tsMach"></select>
+        </label>
+        <div id="tsLegend" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <canvas id="corrChart" aria-label="Chart"></canvas>
+      <div class="row" id="scatterOpts" style="margin:8px 0 0">
+        <label><input type="checkbox" id="showTrain" checked> <span style="color:#0f766e">● train</span></label>
+        <label><input type="checkbox" id="showTest" checked> <span style="color:#d97706">◆ test</span></label>
+        <label><input type="checkbox" id="showRes" checked> residuals</label>
+        <span class="hint" style="margin:0">unchecked set = faded; residuals only for checked sets</span>
+      </div>
+      <div class="corrinfo">
+        <span id="infoL">Pearson r = <b id="corrR">–</b></span>
+        <span id="corrWords" style="color:var(--muted)"></span>
+      </div>
+      <p class="hint" id="tabHint">Click a column name in the table below to see its scatter plot (amber = test rows). Pressing Train switches to the model tab.</p>
+    </div>
+
+    <div class="card">
+      <h2>Train / test split <small>how do we choose the test set?</small></h2>
+      <div class="seg" role="group" aria-label="Split mode">
+        <button id="modeM" class="on">By machine (correct)</button>
+        <button id="modeR" class="leaky">By row (leaky)</button>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <div class="lab"><span id="ratioLab">train ratio (share of machines)</span><b id="ratioVal">70 % / 30 %</b></div>
+        <input type="range" id="ratioSlider" min="10" max="90" step="1" value="70">
+      </div>
+      <div class="splitbar"><div id="barTrain" style="width:70%"></div><div id="barTest" style="width:30%"></div></div>
+      <div class="row">
+        <button class="primary" id="resplit">🔀 Random split again</button>
+        <span class="hint" style="margin:0"><span style="color:#0f766e">●</span> train <b id="nTrain">0</b> rows (<b id="mTrain">0</b> machines) &nbsp;<span style="color:#d97706">◆</span> test <b id="nTest">0</b> rows (<b id="mTest">0</b> machines)</span>
+      </div>
+      <div class="note" id="modeNote"></div>
+      <p class="hint">Test rows are shaded <b style="color:#b45309">amber</b> in the table. The model learns only from the train rows; test rows are used just to check it.</p>
+    </div>
+
+    <div class="card">
+      <h2>Data table <small>2,400 snapshots · 60 machines × 40 · tick a column to use it as a feature</small></h2>
+      <div class="row" style="margin:0 0 8px">
+        <label>View machine <select id="viewMach"></select></label>
+        <span class="hint" id="viewInfo" style="margin:0"></span>
+      </div>
+      <div class="tablewrap"><table class="data" id="table"></table></div>
+      <div class="row">
+        <button class="small" id="selAll">Select all</button>
+        <button class="small" id="selNone">Select none</button>
+        <button class="small" id="selStrong">Select |r| ≥ 0.5</button>
+        <button class="small" id="selBest">Select |r| ≥ 0.7</button>
+        <span class="hint" style="margin:0">Selected: <b id="selCount">0</b></span>
+      </div>
+      <p class="hint">Each row is a snapshot of one machine. <b>y</b> = RUL, the hours left before failure. Tick <b>log</b> to feed ln(value) instead of the raw value. Try ticking <b>id</b>, <b>machine</b> or <b>y</b> to see what happens.</p>
+    </div>
+
+    <div class="card">
+      <h2>Leakage demo <small>same features, two split modes</small></h2>
+      <p class="hint" style="margin:0 0 6px">Uses the currently selected features and the current train ratio. Each split is solved exactly (no gradient descent), then scored on its own test rows.</p>
+      <div class="row" style="margin-top:6px"><button class="primary" id="leakBtn">Run 30 random splits of each mode</button></div>
+      <div class="scroll-x"><table class="mini" id="leakTable" style="margin-top:8px"></table></div>
+      <div id="leakMsg" class="note">Press the button to compare the two split modes.</div>
+    </div>
+  </section>
+
+  <section class="pane">
+    <p class="pane-title">② Train a linear model</p>
+
+    <div class="card">
+      <h2>Model equation</h2>
+      <div class="equation" id="equation">ŷ = β₀</div>
+      <div class="scroll-x"><table class="mini" id="coefTable"></table></div>
+    </div>
+
+    <div class="card">
+      <h2>Gradient descent</h2>
+      <div class="row" style="margin-top:0">
+        <button id="stepBtn" class="primary">⏭ Step</button>
+        <button id="playBtn" class="warn">▶ Train</button>
+        <button id="solveBtn">⚡ Solve instantly</button>
+        <button id="resetBtn">↺ Reset</button>
+      </div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>learning rate (α)</span><b id="lrVal">0.050</b></div>
+          <input type="range" id="lrSlider" min="0.005" max="0.12" step="0.005" value="0.05">
+        </div>
+        <div class="field">
+          <div class="lab"><span>speed (steps / frame)</span><b id="spVal">5</b></div>
+          <input type="range" id="spSlider" min="1" max="50" step="1" value="5">
+        </div>
+      </div>
+      <div class="pair" style="margin-top:10px">
+        <div class="kv"><div class="k">iteration</div><div class="v" id="iter">0</div></div>
+        <div class="kv"><div class="k">features used (p)</div><div class="v" id="pCount">0</div></div>
+      </div>
+      <div id="status">Tick some columns, then press <b>Train</b>.</div>
+      <p class="hint">Features are standardized (z-scores) using <b>train rows only</b>, so all features learn at the same pace and no test information leaks in; the equation above is converted back to the original units.</p>
+    </div>
+
+    <div class="card">
+      <h2>Performance <small>train set vs. test set (RUL in hours)</small></h2>
+      <p class="hint" style="margin:0 0 6px"><b>Train set</b> — used to fit the model (<span id="nTr2">0</span> rows)</p>
+      <div class="metrics">
+        <div class="metric"><div class="name">MAE</div><div class="val" id="mae">–</div><div class="desc">Average |error| in hours.</div></div>
+        <div class="metric"><div class="name">RMSE</div><div class="val" id="rmse">–</div><div class="desc">Typical error; punishes big misses.</div></div>
+        <div class="metric"><div class="name">MAPE</div><div class="val" id="mape">–</div><div class="desc">Average |error| as a % of RUL.</div></div>
+        <div class="metric"><div class="name">MSE</div><div class="val" id="mse">–</div><div class="desc">Loss we minimize.</div></div>
+        <div class="metric"><div class="name">R²</div><div class="val" id="r2">–</div><div class="desc">Share of RUL variance explained.</div></div>
+        <div class="metric"><div class="name">Adj. R²</div><div class="val" id="ar2">–</div><div class="desc">R² penalized for extra features.</div></div>
+      </div>
+      <p class="hint" style="margin:12px 0 6px"><b>Test set</b> — held out, never used for training (<span id="nTe2">0</span> rows)</p>
+      <div class="metrics">
+        <div class="metric"><div class="name">Test MAE</div><div class="val" id="tMae" style="color:#b45309">–</div><div class="desc">Average |error| on unseen rows.</div></div>
+        <div class="metric"><div class="name">Test RMSE</div><div class="val" id="tRmse" style="color:#b45309">–</div><div class="desc">Error on unseen rows.</div></div>
+        <div class="metric"><div class="name">Test MAPE</div><div class="val" id="tMape" style="color:#b45309">–</div><div class="desc">Test error as a % of RUL.</div></div>
+        <div class="metric"><div class="name">Test MSE</div><div class="val" id="tMse" style="color:#b45309">–</div><div class="desc">Squared error on test rows.</div></div>
+        <div class="metric"><div class="name">Test R²</div><div class="val" id="tR2" style="color:#b45309">–</div><div class="desc">Variance explained on test rows.</div></div>
+      </div>
+      <div id="gap">Train a model to compare train vs. test.</div>
+    </div>
+
+    <div class="card">
+      <h2>Loss curve <small>MSE vs. iteration</small></h2>
+      <canvas id="lossChart" aria-label="Loss curve"></canvas>
+      <div class="row">
+        <label><input type="checkbox" id="logLoss"> log scale</label>
+        <span class="hint" style="margin:0"><span style="color:#2563eb">■</span> train &nbsp;<span style="color:#d97706">■</span> test &nbsp;<span style="color:#9333ea">╌</span> best train MSE: <b id="optMse">–</b></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Model comparison <small>logged when training converges · best = lowest Test MAE (current split)</small></h2>
+      <div class="scroll-x"><table class="mini" id="cmpTable"></table></div>
+      <div class="row"><button class="small" id="cmpClear">Clear table</button></div>
+      <p class="hint">Rows from an earlier split are greyed out. Compare the same features under <b>By machine</b> and <b>By row</b>: the by-row Test MAE usually looks better, but only because the model has already seen those machines.</p>
+    </div>
+
+    <div class="card">
+      <h2>Checklist for RUL models</h2>
+      <ul>
+        <li>Keep sensors with a <b>strong |r|</b> with RUL (positive <i>or</i> negative).</li>
+        <li><b>rpm</b> is pure noise: r ≈ 0 and no extra information once the others are in.</li>
+        <li><b>Pressure</b> has a U-shape: r ≈ 0 yet it depends on RUL — a straight line cannot capture it.</li>
+        <li><b>Wear debris</b> grows exponentially as the machine ages: tick <b>log</b> to straighten it.</li>
+        <li>Never use <b>y</b> (leakage) or <b>id</b>/<b>machine</b> (meaningless numbers) as features.</li>
+        <li>Snapshots from one machine are <b>not independent</b>. Split by machine, so the test set simulates new machines.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+
+  // ---------- deterministic data ----------
+  function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const rng = mulberry(501501);
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - rng())) * Math.cos(2 * Math.PI * rng());
+  const NM = 60, PER = 40, N = NM * PER;
+  const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+  const zs = a => { const m = mean(a), s = sd(a); return a.map(v => (v - m) / s); };
+  const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  function corr(a, b) {
+    const ma = mean(a), mb = mean(b); let sab = 0, saa = 0, sbb = 0;
+    for (let i = 0; i < a.length; i++) { const da = a[i] - ma, db = b[i] - mb; sab += da * db; saa += da * da; sbb += db * db; }
+    return saa > 0 && sbb > 0 ? sab / Math.sqrt(saa * sbb) : NaN;
+  }
+  const MACH = Array.from({ length: N }, (_, i) => Math.floor(i / PER) + 1);
+  // RUL: each machine has its own life; PER snapshots spread over that life
+  const life = Array.from({ length: NM }, () => 120 + rng() * 400);
+  const yRaw = Array.from({ length: N }, (_, i) => Math.max(4, life[MACH[i] - 1] * (1 - ((i % PER) + 0.5) / PER) + 3 * gauss()));
+  const zy = zs(yRaw);
+  const mEffs = Array.from({ length: 8 }, () => Array.from({ length: NM }, gauss)), mEff = mEffs[7]; let nk = 0;
+  const orthNoise = (off = 1.8) => {      // noise dominated by a machine-level offset (each sensor has its own), orthogonal to y and centered
+    const me_ = mEffs[nk++ % 7];
+    let e = Array.from({ length: N }, (_, i) => off * me_[MACH[i] - 1] + gauss());
+    const me = mean(e); e = e.map(v => v - me);
+    const proj = dot(e, zy) / dot(zy, zy); return zs(e.map((v, i) => v - proj * zy[i]));
+  };
+  function residualOn(vec, basis) {
+    const p = basis.length + 1, A = Array.from({ length: p }, () => Array(p + 1).fill(0));
+    for (let r = 0; r < N; r++) { const x = [1, ...basis.map(b => b[r])]; for (let a = 0; a < p; a++) { for (let b = 0; b < p; b++) A[a][b] += x[a] * x[b]; A[a][p] += x[a] * vec[r]; } }
+    for (let c = 0; c < p; c++) {
+      let piv = c; for (let r = c + 1; r < p; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      [A[c], A[piv]] = [A[piv], A[c]];
+      for (let r = 0; r < p; r++) if (r !== c) { const f = A[r][c] / A[c][c]; for (let k = c; k <= p; k++) A[r][k] -= f * A[c][k]; }
+    }
+    const co = A.map((row, i) => row[p] / row[i]);
+    return vec.map((v, r) => v - co[0] - basis.reduce((t, b, j) => t + co[j + 1] * b[r], 0));
+  }
+  const SENS = [
+    { n: "s1", what: "vibration (mm/s)", rho: -0.985, off: 0.3, m: 4.5, s: 1.2 },
+    { n: "s2", what: "bearing temp (°C)", rho: -0.96, off: 0.6, m: 75, s: 9 },
+    { n: "s3", what: "pressure (bar) · U-shape", rho: null, m: 6, s: 1 },
+    { n: "s4", what: "motor current (A)", rho: -0.55, off: 1.8, m: 28, s: 4 },
+    { n: "s5", what: "rpm · noise", rho: null, m: 1450, s: 60 },
+    { n: "s6", what: "oil quality (%)", rho: 0.985, off: 0.3, m: 70, s: 12 },
+    { n: "s7", what: "wear debris (ppm) · exponential", rho: null, m: 0, s: 0 }
+  ];
+  const cols = [{ name: "id", what: "row number", v: Array.from({ length: N }, (_, i) => i + 1) }, { name: "machine", what: "machine number", v: MACH.slice() }];
+  const Y = yRaw.map(v => +v.toFixed(1));
+  SENS.forEach((S, k) => {
+    let v;
+    if (k === 2) {         // U-shape: sign of the deviation is balanced so linear r ~ 0
+      const zmin = Math.min(...zy), tt = zy.map(z => Math.sqrt(z - zmin + 0.05) * z), order = zy.map((z, i) => i).sort((a, b) => Math.abs(tt[b]) - Math.abs(tt[a]));
+      const sg = Array(N).fill(1); let run = 0;
+      order.forEach(i => { const t = tt[i]; sg[i] = run > 0 ? -1 : 1; run += sg[i] * t; });
+      for (let pass = 0; pass < 8; pass++) order.forEach(i => { const alt = run - 2 * sg[i] * tt[i]; if (Math.abs(alt) < Math.abs(run)) { run = alt; sg[i] = -sg[i]; } });
+      v = zy.map((z, i) => S.m + sg[i] * Math.sqrt(z - zmin + 0.05) * 1.0 + 0.12 * gauss());
+    } else if (k === 4) { v = Array(N).fill(0); }
+    else if (k === 6) {    // exponential: ln(s7) is linear in y (r about -0.99)
+      const e = orthNoise(0.3), rl = -0.99;
+      v = zy.map((z, i) => Math.exp(2.2 + 0.9 * (rl * z + Math.sqrt(1 - rl * rl) * e[i])));
+    } else { const e = orthNoise(S.off); v = zy.map((z, i) => S.m + S.s * (S.rho * z + Math.sqrt(1 - S.rho ** 2) * e[i])); }
+    cols.push({ name: S.n, what: S.what, v });
+  });
+  cols.push({ name: "y", what: "RUL (hours to failure)", v: Y });
+  const YI = cols.length - 1;
+  {   // rpm: pure noise with a machine fingerprint, orthogonal to y and the other sensors; pressure made orthogonal as well
+    const c = n => cols.find(x => x.name === n).v;
+    const base = [Y, c("s1"), c("s2"), c("s4"), c("s6"), c("s7"), c("s7").map(Math.log)];
+    const raw = Array.from({ length: N }, (_, i) => 0.9 * mEff[(MACH[i] + 4) % NM] + 0.6 * gauss());
+    const r5 = zs(residualOn(raw, base)); cols.find(x => x.name === "s5").v = r5.map(z => SENS[4].m + SENS[4].s * z);
+    const p3 = c("s3"), m3 = mean(p3), r3 = residualOn(p3, [...base, r5]), lo3 = Math.min(...r3);
+    cols.find(x => x.name === "s3").v = r3.map(v => m3 + v - Math.min(0, lo3 + m3 - 0.5));
+  }
+  const DEC = { id: 0, machine: 0, s1: 2, s2: 1, s3: 2, s4: 2, s5: 0, s6: 1, s7: 2, y: 1 };
+  cols.forEach(c => { const d = DEC[c.name]; c.v = c.v.map(v => +v.toFixed(d)); });
+
+  // ---------- split ----------
+  const keysM = Array.from({ length: NM }, () => rng()), keysR = Array.from({ length: N }, () => rng());
+  const isTest = Array(N).fill(false);
+  let TRI = [], TEI = [], nTr = 0, nTe = 0, ym = 0, ys = 1, splitId = 1, ratio = 70, mode = "machine", mTr = 0, mTe = 0;
+  const subOf = (a, idx) => idx.map(i => a[i]);
+  function makeSplit(md, pct, kM, kR) {
+    const rank = keys => keys.map((k, i) => i).sort((a, b) => keys[a] - keys[b]);
+    let trainSet;
+    if (md === "machine") {
+      const k = clamp(Math.round(NM * pct / 100), 1, NM - 1), ms = new Set(rank(kM).slice(0, k));
+      trainSet = new Set(Array.from({ length: N }, (_, i) => i).filter(i => ms.has(MACH[i] - 1)));
+    } else {
+      const k = clamp(Math.round(N * pct / 100), 2, N - 1); trainSet = new Set(rank(kR).slice(0, k));
+    }
+    const TR = [], TE = []; for (let i = 0; i < N; i++) (trainSet.has(i) ? TR : TE).push(i);
+    return { TR, TE };
+  }
+  function baseTransform(c) {
+    c.e = c.log ? c.v.map(Math.log) : c.v;
+    c.label = c.log ? "ln(" + c.name + ")" : c.name;
+    c.r = corr(c.e, Y); c.mean = mean(c.e); c.sd = sd(c.e);
+  }
+  function trainStats(c) { const tr = subOf(c.e, TRI); c.tm = mean(tr); c.ts = sd(tr) || 1; c.z = c.e.map(v => (v - c.tm) / c.ts); }
+  function applyTransform(c) { baseTransform(c); trainStats(c); }
+  function applySplit() {
+    const s = makeSplit(mode, ratio, keysM, keysR); TRI = s.TR; TEI = s.TE; nTr = TRI.length; nTe = TEI.length;
+    isTest.fill(false); TEI.forEach(i => isTest[i] = true);
+    mTr = new Set(TRI.map(i => MACH[i])).size; mTe = new Set(TEI.map(i => MACH[i])).size;
+    const ytr = subOf(Y, TRI); ym = mean(ytr); ys = sd(ytr) || 1;
+    cols.forEach(c => { if (c.e) trainStats(c); });
+  }
+  cols.forEach(c => { c.log = false; baseTransform(c); });
+  applySplit();
+
+  // ---------- state ----------
+  const state = { sel: new Set(), active: 2, tab: 0, w: [], b: 0, iter: 0, history: [], histTest: [], playing: false, lr: 0.05, converged: false, diverged: false, idx: [] };
+  const fmt = (v, d = 3) => !isFinite(v) ? "∞" : Math.abs(v) >= 1e6 ? v.toExponential(2) : v.toFixed(d);
+  const sub = n => String(n).replace(/\d/g, d => "₀₁₂₃₄₅₆₇₈₉"[d]);
+  const sgn = v => v < 0 ? "−" : "+";
+
+  // ---------- table ----------
+  let view = "all";
+  const inView = i => view === "all" || MACH[i] === +view;
+  function viewInfo() { $("viewInfo").textContent = view === "all" ? `showing all ${N} rows` : `showing ${PER} rows of machine ${view} (other machines are faded in the charts)`; }
+  function setView(v) { view = v; $("viewMach").value = v; buildTable(); cols.forEach((c, i) => updateHeader(i)); paintTable(); viewInfo(); drawCorr(); }
+  function buildTable() {
+    let h = "<thead><tr>";
+    cols.forEach((c, i) => {
+      h += `<th title="${c.name}: ${c.what}"><button class="hb" data-col="${i}">${c.name}</button>
+        <span class="sub">${c.what}</span>
+        <label><input type="checkbox" data-sel="${i}"> use</label>
+        <label title="Use ln(${c.name}) instead of ${c.name}"><input type="checkbox" data-log="${i}"> log</label>
+        <div class="rr" id="rr${i}"></div></th>`;
+    });
+    h += "</tr></thead><tbody>";
+    for (let r = 0; r < N; r++) if (inView(r)) h += `<tr data-r="${r}" class="${isTest[r] ? "te" : ""}">` + cols.map((c, i) => `<td data-c="${i}">${c.v[r].toFixed(DEC[c.name])}</td>`).join("") + "</tr>";
+    $("table").innerHTML = h + "</tbody>";
+  }
+  function updateHeader(i) {
+    const c = cols[i], el = $("rr" + i), btn = document.querySelector(`#table .hb[data-col="${i}"]`);
+    el.className = "rr " + (c.r >= 0 ? "pos" : "neg");
+    el.textContent = "r=" + (c.r >= 0 ? "+" : "−") + Math.abs(c.r).toFixed(2);
+    btn.textContent = c.label;
+  }
+  function paintRows() { document.querySelectorAll("#table tbody tr").forEach(tr => tr.classList.toggle("te", isTest[+tr.dataset.r])); }
+  function paintTable() {
+    document.querySelectorAll("#table [data-log]").forEach(cb => cb.checked = cols[+cb.dataset.log].log);
+    document.querySelectorAll("#table td").forEach(td => td.classList.toggle("sel", state.sel.has(+td.dataset.c)));
+    document.querySelectorAll("#table [data-sel]").forEach(cb => cb.checked = state.sel.has(+cb.dataset.sel));
+    document.querySelectorAll("#table .hb").forEach(b => b.classList.toggle("on", +b.dataset.col === state.active));
+    $("selCount").textContent = state.sel.size;
+  }
+  $("table").addEventListener("click", e => { const hb = e.target.closest(".hb"); if (hb) { state.active = +hb.dataset.col; paintTable(); setTab(1); } });
+  $("table").addEventListener("change", e => {
+    const lg = e.target.closest("[data-log]");
+    if (lg) {
+      const i = +lg.dataset.log; cols[i].log = lg.checked; applyTransform(cols[i]); updateHeader(i);
+      state.active = i;
+      if (state.sel.has(i)) selectionChanged(); else paintTable();
+      setTab(1); return;
+    }
+    const cb = e.target.closest("[data-sel]"); if (!cb) return;
+    const i = +cb.dataset.sel; cb.checked ? state.sel.add(i) : state.sel.delete(i);
+    selectionChanged();
+  });
+  const setSel = pred => { state.sel = new Set(cols.map((c, i) => i).filter(pred)); selectionChanged(); };
+  $("selAll").onclick = () => setSel(() => true);
+  $("selNone").onclick = () => setSel(() => false);
+  $("selStrong").onclick = () => setSel(i => i > 1 && i < YI && Math.abs(cols[i].r) >= 0.5);
+  $("selBest").onclick = () => setSel(i => i > 1 && i < YI && Math.abs(cols[i].r) >= 0.7);
+
+  // ---------- canvases ----------
+  const cc = $("corrChart"), cx = cc.getContext("2d");
+  const lc = $("lossChart"), lx = lc.getContext("2d");
+  let CW = 0, CH = 0, LW = 0, LH = 0;
+  function fit(canvas, ctx) {
+    const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [w, h];
+  }
+  function resize() { [CW, CH] = fit(cc, cx); [LW, LH] = fit(lc, lx); drawCorr(); drawLoss(); }
+  function ticks(lo, hi, n = 5) {
+    const raw = (hi - lo) / n, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+    const step = (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p, out = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+    return out;
+  }
+  function setTab(t) {
+    state.tab = t; [0, 1, 2].forEach(k => $("tab" + k).classList.toggle("on", t === k));
+    $("tsBox").style.display = t === 0 ? "flex" : "none"; $("scatterOpts").style.display = t === 0 ? "none" : "flex";
+    $("tabHint").textContent = t === 0 ? "Every line is normalised to 0–1 (min–max of its own column) so that different units fit on one chart. Hover a line to read the sensor name and its real value; click a legend chip to hide or show a line."
+      : "Click a column name in the table below to see its scatter plot (amber = test rows). Pressing Train switches to the model tab.";
+    drawCorr();
+  }
+  ["showTrain", "showTest", "showRes"].forEach(id => $(id).onchange = drawCorr);
+  $("tab0").onclick = () => setTab(0); $("tab1").onclick = () => setTab(1); $("tab2").onclick = () => setTab(2);
+  const aSet = i => ($(isTest[i] ? "showTest" : "showTrain").checked ? 1 : 0.15) * (inView(i) ? 1 : 0.25);
+  const resOn = i => $("showRes").checked && inView(i) && $(isTest[i] ? "showTest" : "showTrain").checked;
+  function diamond(x, y, r) { cx.beginPath(); cx.moveTo(x, y - r); cx.lineTo(x + r, y); cx.lineTo(x, y + r); cx.lineTo(x - r, y); cx.closePath(); }
+  function plotPt(i, x, y, trainColor) {
+    cx.globalAlpha = aSet(i); cx.strokeStyle = "#fff";
+    if (isTest[i]) { cx.fillStyle = "rgba(217,119,6,.95)"; diamond(x, y, 5.6); } else { cx.fillStyle = trainColor; cx.beginPath(); cx.arc(x, y, 3.6, 0, 7); }
+    cx.fill(); cx.stroke(); cx.globalAlpha = 1;
+  }
+  function drawPred() {
+    const P = { l: 44, r: 12, t: 10, b: 28 };
+    cx.clearRect(0, 0, CW, CH); cx.font = "11px system-ui, sans-serif"; cx.textBaseline = "middle";
+    const pred = Y.map((_, i) => predictStd(i)), ev = evaluate();
+    $("infoL").innerHTML = `Train MAE = <b>${fmt(ev.mae, 1)} h</b> · <span style="color:#b45309">Test MAE = <b>${fmt(ev.test.mae, 1)} h</b></span>`;
+    $("corrWords").textContent = "circles = train, diamonds = test · closer to the dashed line = better";
+    $("corrTitle").textContent = "";
+    let lo = Math.min(...Y, ...pred), hi = Math.max(...Y, ...pred);
+    if (!isFinite(lo) || !isFinite(hi)) return;
+    const pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
+    const sx = v => P.l + (v - lo) / (hi - lo) * (CW - P.l - P.r), sy = v => CH - P.b - (v - lo) / (hi - lo) * (CH - P.t - P.b);
+    cx.strokeStyle = "#eef0f4"; cx.fillStyle = "#6b7280"; cx.textAlign = "right";
+    const tk = ticks(lo, hi, 5);
+    tk.forEach(t => { cx.beginPath(); cx.moveTo(P.l, sy(t)); cx.lineTo(CW - P.r, sy(t)); cx.stroke(); cx.fillText(t, P.l - 6, sy(t)); });
+    cx.textAlign = "center";
+    tk.forEach(t => { cx.beginPath(); cx.moveTo(sx(t), P.t); cx.lineTo(sx(t), CH - P.b); cx.stroke(); cx.fillText(t, sx(t), CH - P.b + 12); });
+    cx.strokeStyle = "#9ca3af"; cx.strokeRect(P.l, P.t, CW - P.l - P.r, CH - P.t - P.b);
+    cx.fillStyle = "#374151"; cx.textAlign = "right"; cx.fillText("y (actual RUL, h)", CW - P.r - 4, CH - P.b - 10);
+    cx.textAlign = "left"; cx.fillText("ŷ (predicted)", 4, P.t + 6);
+    cx.save(); cx.beginPath(); cx.rect(P.l, P.t, CW - P.l - P.r, CH - P.t - P.b); cx.clip();
+    cx.strokeStyle = "#9333ea"; cx.lineWidth = 2; cx.setLineDash([7, 5]);
+    cx.beginPath(); cx.moveTo(sx(lo), sy(lo)); cx.lineTo(sx(hi), sy(hi)); cx.stroke(); cx.setLineDash([]); cx.lineWidth = 1;
+    cx.strokeStyle = "rgba(239,68,68,.45)"; cx.beginPath();
+    Y.forEach((v, i) => { if (resOn(i)) { cx.moveTo(sx(v), sy(v)); cx.lineTo(sx(v), sy(pred[i])); } }); cx.stroke();
+    Y.forEach((v, i) => plotPt(i, sx(v), sy(pred[i]), "rgba(37,99,235,.8)"));
+    cx.restore();
+  }
+  // ---------- tab 1: sensors over time ----------
+  const PAL = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#0891b2", "#db2777"];
+  const ts = { mach: "all", hidden: new Set(), hover: null, pts: [] };
+  const hoursOf = i => life[MACH[i] - 1] * ((i % PER) + 0.5) / PER;   // operating hours at snapshot i
+  const tsCols = cols.filter(c => /^s\d$/.test(c.name)), yCol = cols[cols.length - 1];
+  tsCols.concat(yCol).forEach(c => { c.lo = Math.min(...c.v); c.hi = Math.max(...c.v); });
+  (() => {
+    const sel = $("tsMach"); sel.innerHTML = '<option value="all">All machines (row order)</option>' + Array.from({ length: NM }, (_, k) => `<option value="${k + 1}">Machine ${k + 1}</option>`).join("");
+    sel.value = "1"; ts.mach = "1"; sel.onchange = () => { ts.mach = sel.value; ts.hover = null; drawCorr(); };
+    const lg = $("tsLegend");
+    tsCols.forEach((c, k) => { const b = document.createElement("button"); b.className = "chip"; b.dataset.n = c.name; b.title = c.what; b.innerHTML = `<i style="border-color:${PAL[k]}"></i>${c.name}`; lg.appendChild(b); });
+    const yb = document.createElement("button"); yb.className = "chip y"; yb.dataset.n = "y"; yb.title = "RUL (hours to failure)"; yb.innerHTML = '<i style="border-color:#111827"></i>y (RUL)'; lg.appendChild(yb);
+    lg.onclick = e => { const b = e.target.closest(".chip"); if (!b) return; const n = b.dataset.n; ts.hidden.has(n) ? ts.hidden.delete(n) : ts.hidden.add(n); b.classList.toggle("off", ts.hidden.has(n)); drawCorr(); };
+  })();
+  function drawSensors() {
+    const P = { l: 42, r: 12, t: 16, b: 28 }, all = ts.mach === "all", m = +ts.mach;
+    const idx = all ? Array.from({ length: N }, (_, i) => i) : Array.from({ length: PER }, (_, k) => (m - 1) * PER + k);
+    const xv = i => all ? i + 1 : hoursOf(i), xmax = all ? N : Math.max(...idx.map(xv)) * 1.04, xmin = all ? 1 : 0;
+    const X = v => P.l + (v - xmin) / (xmax - xmin) * (CW - P.l - P.r), Yp = v => CH - P.b - v / 100 * (CH - P.t - P.b);
+    cx.clearRect(0, 0, CW, CH); cx.font = "11px system-ui, sans-serif"; cx.textBaseline = "middle";
+    cx.strokeStyle = "#eef0f4"; cx.fillStyle = "#6b7280"; cx.lineWidth = 1; cx.textAlign = "right";
+    for (let v = 0; v <= 100; v += 25) { cx.beginPath(); cx.moveTo(P.l, Yp(v)); cx.lineTo(CW - P.r, Yp(v)); cx.stroke(); cx.fillText((v / 100).toFixed(2).replace(/0$/, ""), P.l - 6, Yp(v)); }
+    cx.textAlign = "center";
+    ticks(xmin, xmax, 6).forEach(t => { cx.beginPath(); cx.moveTo(X(t), P.t); cx.lineTo(X(t), CH - P.b); cx.stroke(); cx.fillText(Math.round(t), X(t), CH - P.b + 12); });
+    cx.strokeStyle = "#9ca3af"; cx.strokeRect(P.l, P.t, CW - P.l - P.r, CH - P.t - P.b);
+    cx.fillStyle = "#374151"; cx.textAlign = "right"; cx.fillText(all ? "snapshot (row id)" : "operating hours", CW - P.r - 2, CH - P.b - 9);
+    if (all) { cx.textAlign = "center"; cx.fillStyle = "#9ca3af"; for (let k = 0; k < NM; k++) { const x0 = X(k * PER + 0.5); if (k && NM <= 20) { cx.strokeStyle = "#d1d5db"; cx.beginPath(); cx.moveTo(x0, P.t); cx.lineTo(x0, CH - P.b); cx.stroke(); } if ((k + 1) % 5 === 0 || k === 0) cx.fillText("M" + (k + 1), X(k * PER + PER / 2 + 0.5), P.t - 6); } }
+    ts.pts = []; const series = tsCols.map((c, k) => ({ c, col: PAL[k], w: 1, name: c.name })).concat([{ c: yCol, col: "#111827", w: 2, name: "y" }]);
+    const hov = ts.hover;
+    series.forEach(sr => {
+      if (ts.hidden.has(sr.name)) return;
+      cx.strokeStyle = sr.col; cx.lineWidth = sr.w; cx.globalAlpha = hov && hov.name !== sr.name ? 0.35 : 1; cx.beginPath();
+      idx.forEach((i, q) => { const x = X(xv(i)), y = Yp((sr.c.v[i] - sr.c.lo) / (sr.c.hi - sr.c.lo || 1) * 100);
+        const brk = all && q > 0 && MACH[i] !== MACH[idx[q - 1]]; (q === 0 || brk) ? cx.moveTo(x, y) : cx.lineTo(x, y); ts.pts.push({ x, y, i, sr }); }); cx.stroke();
+      cx.globalAlpha = 1; cx.fillStyle = sr.col; if (!all) idx.forEach(i => { cx.beginPath(); cx.arc(X(xv(i)), Yp((sr.c.v[i] - sr.c.lo) / (sr.c.hi - sr.c.lo || 1) * 100), sr.w === 2 ? 2.8 : 1.8, 0, 7); cx.fill(); });
+    });
+    if (hov) {   // highlight + tooltip
+      cx.strokeStyle = hov.sr.col; cx.lineWidth = 2; cx.beginPath(); cx.arc(hov.x, hov.y, 6, 0, 7); cx.stroke();
+      const c = hov.sr.c, v = c.v[hov.i], lines = [`${c.name} · ${c.what}`, `value: ${c.name === "y" ? v.toFixed(1) + " h" : fmt(v, 2)}`, `machine ${MACH[hov.i]} · ${hoursOf(hov.i).toFixed(0)} h in service`];
+      const w = Math.max(...lines.map(t => cx.measureText(t).width)) + 16, h = lines.length * 15 + 8; let tx = hov.x + 12, ty = hov.y - h - 8; if (tx + w > CW - 4) tx = hov.x - w - 12; if (ty < 2) ty = hov.y + 12;
+      cx.fillStyle = "rgba(17,24,39,.92)"; cx.fillRect(tx, ty, w, h); cx.fillStyle = "#fff"; cx.textAlign = "left"; lines.forEach((t, k) => cx.fillText(t, tx + 8, ty + 12 + k * 15));
+    }
+    cx.lineWidth = 1;
+    $("infoL").innerHTML = all ? `All ${NM} machines, one after another` : `Machine ${m} · life ≈ ${life[m - 1].toFixed(0)} h`;
+    $("corrWords").textContent = "sensors 1 px · y (RUL) 2 px black";
+    $("corrTitle").textContent = "";
+  }
+  (() => { const sel = $("viewMach"); sel.innerHTML = '<option value="all">All machines</option>' + Array.from({ length: NM }, (_, k) => `<option value="${k + 1}">Machine ${k + 1}</option>`).join(""); sel.onchange = () => setView(sel.value); })();
+  cv_hover();
+  function cv_hover() {
+    const el = $("corrChart");
+    el.addEventListener("pointermove", e => {
+      if (state.tab !== 0) return; const r = el.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top; let best = null, bd = 14;
+      ts.pts.forEach(p => { const d = Math.hypot(p.x - px, p.y - py); if (d < bd) { bd = d; best = p; } });
+      const nh = best ? { name: best.sr.name, x: best.x, y: best.y, i: best.i, sr: best.sr } : null;
+      if (!ts.hover !== !nh || (nh && (ts.hover.name !== nh.name || ts.hover.i !== nh.i))) { ts.hover = nh; drawCorr(); }
+      el.style.cursor = nh ? "pointer" : "default";
+    });
+    el.addEventListener("pointerleave", () => { if (state.tab === 0 && ts.hover) { ts.hover = null; drawCorr(); } });
+  }
+  function drawCorr() {
+    if (state.tab === 0) return drawSensors();
+    if (state.tab === 2) return drawPred();
+    $("infoL").innerHTML = 'Pearson r = <b id="corrR">–</b>';
+    const c = cols[state.active], P = { l: 44, r: 12, t: 10, b: 28 };
+    cx.clearRect(0, 0, CW, CH);
+    cx.font = "11px system-ui, sans-serif"; cx.textBaseline = "middle";
+    const xs = c.e, lo = Math.min(...xs), hi = Math.max(...xs), ylo = Math.min(...Y) - 5, yhi = Math.max(...Y) + 5;
+    const xl = lo - (hi - lo) * 0.04, xh = hi + (hi - lo) * 0.04;
+    const sx = v => P.l + (v - xl) / (xh - xl) * (CW - P.l - P.r), sy = v => CH - P.b - (v - ylo) / (yhi - ylo) * (CH - P.t - P.b);
+    cx.strokeStyle = "#eef0f4"; cx.fillStyle = "#6b7280"; cx.textAlign = "right";
+    ticks(ylo, yhi, 5).forEach(t => { cx.beginPath(); cx.moveTo(P.l, sy(t)); cx.lineTo(CW - P.r, sy(t)); cx.stroke(); cx.fillText(t, P.l - 6, sy(t)); });
+    cx.textAlign = "center";
+    ticks(xl, xh, 6).forEach(t => { cx.beginPath(); cx.moveTo(sx(t), P.t); cx.lineTo(sx(t), CH - P.b); cx.stroke(); cx.fillText(t, sx(t), CH - P.b + 12); });
+    cx.strokeStyle = "#9ca3af"; cx.strokeRect(P.l, P.t, CW - P.l - P.r, CH - P.t - P.b);
+    cx.fillStyle = "#374151"; cx.textAlign = "right"; cx.fillText(c.label, CW - P.r - 4, CH - P.b - 10);
+    cx.textAlign = "left"; cx.fillText("y = RUL (h)", 4, P.t + 6);
+    const slope = c.r * sd(Y) / c.sd, icpt = mean(Y) - slope * c.mean;
+    cx.strokeStyle = "#2563eb"; cx.lineWidth = 2.5; cx.beginPath();
+    cx.moveTo(sx(xl), sy(slope * xl + icpt)); cx.lineTo(sx(xh), sy(slope * xh + icpt)); cx.stroke(); cx.lineWidth = 1;
+    cx.strokeStyle = "rgba(239,68,68,.4)"; cx.beginPath();
+    xs.forEach((v, i) => { if (resOn(i)) { cx.moveTo(sx(v), sy(Y[i])); cx.lineTo(sx(v), sy(slope * v + icpt)); } }); cx.stroke();
+    xs.forEach((v, i) => plotPt(i, sx(v), sy(Y[i]), "rgba(15,118,110,.8)"));
+    $("corrTitle").textContent = c.label + " (" + c.what + ") vs. y";
+    $("corrR").textContent = (c.r >= 0 ? "+" : "−") + Math.abs(c.r).toFixed(3);
+    const a = Math.abs(c.r);
+    $("corrWords").textContent = (a >= .9 ? "very strong" : a >= .7 ? "strong" : a >= .4 ? "moderate" : a >= .2 ? "weak" : "very weak / none") + (a >= .2 ? (c.r > 0 ? " positive" : " negative") : "") + " linear relationship";
+  }
+
+  // ---------- regression math ----------
+  function prepare() { state.idx = [...state.sel].sort((a, b) => a - b); }
+  const Z = j => cols[state.idx[j]].z;
+  function predictStd(i) { let y = state.b; for (let j = 0; j < state.idx.length; j++) y += state.w[j] * Z(j)[i]; return y; }
+  function evalSet(set) {
+    let se = 0, ae = 0, pe = 0; const my = mean(set.map(i => Y[i]));
+    set.forEach(i => { const e = Y[i] - predictStd(i); se += e * e; ae += Math.abs(e); pe += Math.abs(e / Y[i]); });
+    const n = set.length, mse = se / n, sst = set.reduce((t, i) => t + (Y[i] - my) ** 2, 0) / n;
+    return { mse, rmse: Math.sqrt(mse), mae: ae / n, mape: 100 * pe / n, r2: 1 - mse / sst };
+  }
+  function evaluate() {
+    const tr = evalSet(TRI), p = state.idx.length;
+    tr.ar2 = p + 1 < nTr ? 1 - (1 - tr.r2) * (nTr - 1) / (nTr - p - 1) : NaN;
+    tr.test = evalSet(TEI); return tr;
+  }
+  function gradient() {
+    const p = state.idx.length, g = Array(p).fill(0); let gb = 0;
+    TRI.forEach(i => { const e = Y[i] - predictStd(i); gb += -2 * e; for (let j = 0; j < p; j++) g[j] += -2 * Z(j)[i] * e; });
+    return { g: g.map(v => v / nTr), gb: gb / nTr };
+  }
+  function gaussJ(A, bvec) {
+    const p = A.length;
+    for (let c = 0; c < p; c++) {
+      let piv = c; for (let r = c + 1; r < p; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      [A[c], A[piv]] = [A[piv], A[c]]; [bvec[c], bvec[piv]] = [bvec[piv], bvec[c]];
+      for (let r = 0; r < p; r++) if (r !== c) { const f = A[r][c] / A[c][c]; for (let k = c; k < p; k++) A[r][k] -= f * A[c][k]; bvec[r] -= f * bvec[c]; }
+    }
+    return bvec.map((v, i) => v / A[i][i]);
+  }
+  function solveExact() {
+    const p = state.idx.length, A = [], bvec = [];
+    for (let a = 0; a < p; a++) {
+      A.push(Array.from({ length: p }, (_, b) => TRI.reduce((t, i) => t + Z(a)[i] * Z(b)[i], 0) / nTr + (a === b ? 1e-9 : 0)));
+      bvec.push(TRI.reduce((t, i) => t + Z(a)[i] * (Y[i] - ym), 0) / nTr);
+    }
+    return { w: gaussJ(A, bvec), b: ym };
+  }
+  // stand-alone fit for the leakage demo (does not touch the UI state)
+  function fitSplit(idx, TR, TE) {
+    const cs = idx.map(ci => { const e = cols[ci].e, tr = TR.map(i => e[i]), m = mean(tr), s = sd(tr) || 1; return { e, m, s }; });
+    const z = (c, i) => (c.e[i] - c.m) / c.s, yb = mean(TR.map(i => Y[i])), p = cs.length;
+    const A = Array.from({ length: p }, (_, a) => Array.from({ length: p }, (_, b) => TR.reduce((t, i) => t + z(cs[a], i) * z(cs[b], i), 0) / TR.length + (a === b ? 1e-9 : 0)));
+    const bv = cs.map(c => TR.reduce((t, i) => t + z(c, i) * (Y[i] - yb), 0) / TR.length);
+    const w = p ? gaussJ(A, bv) : [], pr = i => yb + cs.reduce((t, c, j) => t + w[j] * z(c, i), 0);
+    const mae = S => S.reduce((t, i) => t + Math.abs(Y[i] - pr(i)), 0) / S.length;
+    return { tr: mae(TR), te: mae(TE) };
+  }
+  function optMse() {
+    const saved = [state.w, state.b], s = solveExact();
+    state.w = s.w; state.b = s.b; const m = evaluate().mse; [state.w, state.b] = saved; return m;
+  }
+  function originalCoefs() {
+    const betas = state.idx.map((ci, j) => state.w[j] / cols[ci].ts);
+    const b0 = state.b - betas.reduce((t, b, j) => t + b * cols[state.idx[j]].tm, 0);
+    return { b0, betas };
+  }
+
+  // ---------- UI refresh ----------
+  function setStatus(msg, cls = "") { const s = $("status"); s.className = cls; s.innerHTML = msg; }
+  function updateNote() {
+    const n = $("modeNote");
+    if (mode === "machine") {
+      n.className = "note ok";
+      n.innerHTML = `<b>By machine:</b> all ${PER} snapshots of a machine go to the same set (${mTr} machines train, ${mTe} machines test). The test set simulates <b>new machines the model has never seen</b>, which is what happens in the real plant.`;
+    } else {
+      n.className = "note leak";
+      n.innerHTML = `<b>By row (leaky):</b> random snapshots are chosen, so ${mTe} of ${NM} machines appear in <b>both</b> train and test. Snapshots of one machine are near-copies of each other, so the model has already seen these machines (<b>data leakage</b>) and the test score looks better than it will be in reality.`;
+    }
+  }
+  function refresh() {
+    const ev = evaluate(), { b0, betas } = originalCoefs(), p = state.idx.length;
+    $("iter").textContent = state.iter; $("pCount").textContent = p;
+    $("mse").textContent = fmt(ev.mse, 1); $("rmse").textContent = fmt(ev.rmse, 2); $("mae").textContent = fmt(ev.mae, 2); $("mape").textContent = fmt(ev.mape, 2) + " %";
+    $("r2").textContent = fmt(ev.r2); $("ar2").textContent = fmt(ev.ar2);
+    const te = ev.test;
+    $("tMse").textContent = fmt(te.mse, 1); $("tRmse").textContent = fmt(te.rmse, 2); $("tMae").textContent = fmt(te.mae, 2);
+    $("tMape").textContent = fmt(te.mape, 2) + " %"; $("tR2").textContent = fmt(te.r2);
+    $("nTr2").textContent = nTr; $("nTe2").textContent = nTe;
+    const q = te.mae / Math.max(ev.mae, 1e-9), gap = $("gap");
+    if (state.iter === 0 && !state.converged) { gap.className = ""; gap.textContent = "Train a model to compare train vs. test."; }
+    else if (mode === "row") { gap.className = "bad"; gap.innerHTML = `⚠️ Leaky split: Test MAE is ${fmt(te.mae, 1)} h (${q.toFixed(2)}× train). It looks good because the test machines were also in the train set. Switch to <b>By machine</b> for the honest number.`; }
+    else if (q > 1.25) { gap.className = "bad"; gap.innerHTML = `⚠️ By machine: Test MAE is <b>${q.toFixed(2)}×</b> the train MAE. On machines it has never seen, the model is less accurate. This is the realistic error.`; }
+    else { gap.className = ""; gap.innerHTML = `✅ By machine: Test MAE is about <b>${q.toFixed(2)}×</b> the train MAE — the model generalizes to unseen machines.`; }
+    $("ratioVal").textContent = mode === "machine" ? `${mTr} of ${NM} machines train` : `${nTr} of ${N} rows train`;
+    $("nTrain").textContent = nTr; $("nTest").textContent = nTe; $("mTrain").textContent = mTr; $("mTest").textContent = mTe;
+    $("barTrain").style.width = (100 * nTr / N) + "%"; $("barTest").style.width = (100 * nTe / N) + "%";
+    let eq = "ŷ = " + fmt(b0, 2);
+    betas.forEach((b, j) => eq += ` ${sgn(b)} ${fmt(Math.abs(b), 2)}·${cols[state.idx[j]].label}`);
+    $("equation").textContent = eq;
+    let t = "<tr><th>coef</th><th>feature</th><th>β (feature units)</th><th>std. β</th><th>r with y</th></tr>";
+    t += `<tr><td>β₀</td><td>intercept</td><td>${fmt(b0, 2)}</td><td>–</td><td>–</td></tr>`;
+    betas.forEach((b, j) => {
+      const c = cols[state.idx[j]];
+      t += `<tr><td>β${sub(j + 1)}</td><td>${c.label}</td><td>${fmt(b)}</td><td>${fmt(state.w[j] / ys)}</td><td class="${c.r >= 0 ? "pos" : "neg"}">${state.idx[j] === YI ? "1.000" : fmt(c.r)}</td></tr>`;
+    });
+    $("coefTable").innerHTML = t;
+    $("optMse").textContent = fmt(optMse(), 1);
+    drawLoss(); if (state.tab === 2) drawCorr();
+  }
+  function drawLoss() {
+    lx.clearRect(0, 0, LW, LH);
+    const P = { l: 52, r: 10, t: 10, b: 24 }, hist = state.history, hT = state.histTest, log = $("logLoss").checked;
+    lx.font = "11px system-ui, sans-serif"; lx.fillStyle = "#6b7280"; lx.strokeStyle = "#9ca3af";
+    lx.strokeRect(P.l, P.t, LW - P.l - P.r, LH - P.t - P.b);
+    if (!hist.length || !hist.every(isFinite)) {
+      lx.textAlign = "center"; lx.textBaseline = "middle"; lx.fillText(hist.length ? "diverged" : "train the model to see the loss", LW / 2, LH / 2); return;
+    }
+    const opt = optMse(), f = v => log ? Math.log10(Math.max(v, 1e-6)) : v;
+    let lo = Math.min(Math.min(...hist.map(f), ...hT.map(f)), f(opt)), hi = Math.max(...hist.map(f), ...hT.map(f));
+    if (!log) lo = Math.min(lo, 0);
+    if (hi - lo < 1e-9) hi = lo + 1;
+    const n = hist.length, span = Math.max(n - 1, 1);
+    const X = i => P.l + i / span * (LW - P.l - P.r), Yp = v => LH - P.b - (f(v) - lo) / (hi - lo) * (LH - P.t - P.b);
+    lx.textAlign = "right"; lx.textBaseline = "middle";
+    const lab = v => log ? "10^" + v.toFixed(1) : fmt(v, 0);
+    lx.fillText(lab(hi), P.l - 5, P.t + 4); lx.fillText(lab(lo), P.l - 5, LH - P.b - 4);
+    lx.textAlign = "left"; lx.textBaseline = "top"; lx.fillText("0", P.l, LH - P.b + 6);
+    lx.textAlign = "right"; lx.fillText("iter " + (n - 1), LW - P.r, LH - P.b + 6);
+    lx.strokeStyle = "#9333ea"; lx.setLineDash([5, 4]); lx.beginPath();
+    lx.moveTo(P.l, Yp(opt)); lx.lineTo(LW - P.r, Yp(opt)); lx.stroke(); lx.setLineDash([]);
+    const stride = Math.max(1, Math.floor(n / 600));
+    lx.strokeStyle = "#2563eb"; lx.lineWidth = 2; lx.beginPath();
+    for (let i = 0; i < n; i += stride) i ? lx.lineTo(X(i), Yp(hist[i])) : lx.moveTo(X(i), Yp(hist[i]));
+    lx.lineTo(X(n - 1), Yp(hist[n - 1])); lx.stroke();
+    lx.strokeStyle = "#d97706"; lx.beginPath();
+    for (let i = 0; i < hT.length; i += stride) i ? lx.lineTo(X(i), Yp(hT[i])) : lx.moveTo(X(i), Yp(hT[i]));
+    lx.lineTo(X(hT.length - 1), Yp(hT[hT.length - 1])); lx.stroke(); lx.lineWidth = 1;
+  }
+
+  // ---------- training ----------
+  function resetModel() {
+    stop(); prepare();
+    state.w = Array(state.idx.length).fill(0); state.b = 0; state.iter = 0; state.converged = false; state.diverged = false;
+    { const e0 = evaluate(); state.history = [e0.mse]; state.histTest = [e0.test.mse]; }
+    refresh();
+  }
+  function selectionChanged() {
+    paintTable(); resetModel();
+    if (state.sel.has(YI)) setStatus("⚠️ You selected <b>y</b> as a feature — that is <b>data leakage</b>: the model just copies the answer (R² → 1). Never do this.", "warn");
+    else if (state.sel.has(0) || state.sel.has(1)) setStatus("ℹ️ <b>id</b> and <b>machine</b> are only labels, not physical measurements. A good model should give them almost no weight.", "warn");
+    else setStatus(state.sel.size ? "Ready. Press <b>Train</b>, <b>Step</b> or <b>Solve instantly</b>." : "No features selected → the model can only predict the mean RUL (β₀ only).");
+  }
+  function step() {
+    const { g, gb } = gradient();
+    for (let j = 0; j < g.length; j++) state.w[j] -= state.lr * g[j];
+    state.b -= state.lr * gb; state.iter++;
+    const e1 = evaluate(), mse = e1.mse; state.history.push(mse); state.histTest.push(e1.test.mse);
+    if (!isFinite(mse) || mse > 1e12) { state.diverged = true; stop(); setStatus("💥 Diverged — learning rate too large. Press <b>Reset</b> and lower α.", "err"); return false; }
+    if (Math.hypot(gb, ...g) < 1e-3 || state.iter >= 50000) { state.converged = true; stop(); onConverged("Converged"); return false; }
+    return true;
+  }
+  function onConverged(word) {
+    const ev = evaluate();
+    setStatus(`✅ ${word}: Train MAE = ${fmt(ev.mae, 1)} h, <b>Test MAE = ${fmt(ev.test.mae, 1)} h</b>, Adj. R² = ${fmt(ev.ar2)}.`, "ok");
+    logRun(ev);
+  }
+  function frame() {
+    if (!state.playing) return;
+    let ok = true; for (let i = 0; i < +$("spSlider").value && ok; i++) ok = step();
+    if (ok) setStatus(`Training… MSE = ${fmt(state.history[state.history.length - 1], 1)}`);
+    refresh(); if (state.playing) requestAnimationFrame(frame);
+  }
+  function play() { setTab(2); if (state.converged || state.diverged) resetModel(); state.playing = true; $("playBtn").textContent = "⏸ Pause"; requestAnimationFrame(frame); }
+  function stop() { state.playing = false; $("playBtn").textContent = "▶ Train"; }
+  $("playBtn").onclick = () => state.playing ? (stop(), setStatus("Paused.")) : play();
+  $("stepBtn").onclick = () => { stop(); setTab(2); if (state.converged || state.diverged) resetModel(); if (step()) setStatus(`Step ${state.iter}. MSE = ${fmt(state.history[state.history.length - 1], 1)}`); refresh(); };
+  $("solveBtn").onclick = () => {
+    stop(); setTab(2); const s = solveExact(); state.w = s.w; state.b = s.b; state.iter++;
+    { const e1 = evaluate(); state.history.push(e1.mse); state.histTest.push(e1.test.mse); } state.converged = true;
+    refresh(); onConverged("Solved with the normal equation");
+  };
+  $("resetBtn").onclick = () => { resetModel(); setStatus("Model reset to zeros."); };
+  $("lrSlider").oninput = e => { state.lr = +e.target.value; $("lrVal").textContent = state.lr.toFixed(3); };
+  $("spSlider").oninput = e => $("spVal").textContent = e.target.value;
+  $("logLoss").onchange = drawLoss;
+
+  // ---------- comparison table ----------
+  const runs = new Map();
+  function logRun(ev) {
+    const key = state.idx.map(i => i + (cols[i].log ? "L" : "")).join(",") + "|" + mode + "|" + ratio + "|" + splitId, names = state.idx.map(i => cols[i].label), te = ev.test;
+    runs.set(key, { names: names.length ? names.join(", ") : "(none – mean only)", p: names.length, mode, pct: Math.round(100 * nTr / N), split: splitId,
+      mae: ev.mae, mape: ev.mape, tmae: te.mae, tmape: te.mape });
+    renderRuns();
+  }
+  function renderRuns() {
+    const list = [...runs.values()], cur = list.filter(r => r.split === splitId);
+    const best = cur.length ? Math.min(...cur.map(r => r.tmae)) : NaN;
+    let t = "<tr><th>features</th><th>split mode</th><th>train %</th><th>p</th><th>Train MAE</th><th>Test MAE</th><th>Train MAPE</th><th>Test MAPE</th></tr>";
+    list.forEach(r => t += `<tr class="${r.split !== splitId ? "stale" : r.tmae === best ? "best" : ""}"><td>${r.names}</td><td>${r.mode === "machine" ? "by machine" : "by row"}</td><td>${r.pct}%</td><td>${r.p}</td><td>${fmt(r.mae, 1)}</td><td>${fmt(r.tmae, 1)}</td><td>${fmt(r.mape, 1)}%</td><td>${fmt(r.tmape, 1)}%</td></tr>`);
+    $("cmpTable").innerHTML = list.length ? t : "<tr><td style='color:var(--muted)'>No runs yet — train a model to add a row.</td></tr>";
+  }
+  function splitChanged() {
+    splitId++; applySplit(); paintRows(); updateNote(); resetModel(); drawCorr();
+    setStatus("Split changed — the model was reset. Train again to see how train and test errors differ.");
+    renderRuns();
+  }
+  function setMode(m) {
+    mode = m; $("modeM").classList.toggle("on", m === "machine"); $("modeR").classList.toggle("on", m === "row");
+    $("ratioLab").textContent = m === "machine" ? "train ratio (share of machines)" : "train ratio (share of rows)";
+    splitChanged();
+  }
+  $("modeM").onclick = () => setMode("machine"); $("modeR").onclick = () => setMode("row");
+  $("ratioSlider").oninput = e => { ratio = +e.target.value; splitChanged(); };
+  $("resplit").onclick = () => { for (let i = 0; i < NM; i++) keysM[i] = Math.random(); for (let i = 0; i < N; i++) keysR[i] = Math.random(); splitChanged(); };
+  $("cmpClear").onclick = () => { runs.clear(); renderRuns(); };
+
+  // ---------- leakage demo ----------
+  $("leakBtn").onclick = () => {
+    const idx = [...state.sel].sort((a, b) => a - b), r2 = mulberry(777), res = {};
+    ["machine", "row"].forEach(md => {
+      const a = [], b = [];
+      for (let k = 0; k < 30; k++) {
+        const kM = Array.from({ length: NM }, r2), kR = Array.from({ length: N }, r2), s = makeSplit(md, ratio, kM, kR), f = fitSplit(idx, s.TR, s.TE);
+        a.push(f.tr); b.push(f.te);
+      }
+      res[md] = { tr: mean(a), te: mean(b), sd: sd(b) };
+    });
+    const names = idx.length ? idx.map(i => cols[i].label).join(", ") : "(none – mean only)";
+    $("leakTable").innerHTML = `<tr><th>split mode (${ratio} % train)</th><th>mean Train MAE</th><th>mean Test MAE</th><th>spread (sd)</th></tr>
+      <tr class="best"><td>By machine (correct)</td><td>${fmt(res.machine.tr, 1)}</td><td>${fmt(res.machine.te, 1)}</td><td>${fmt(res.machine.sd, 1)}</td></tr>
+      <tr><td>By row (leaky)</td><td>${fmt(res.row.tr, 1)}</td><td>${fmt(res.row.te, 1)}</td><td>${fmt(res.row.sd, 1)}</td></tr>`;
+    const d = res.machine.te - res.row.te, m = $("leakMsg");
+    if (d > 0.3) { m.className = "note leak"; m.innerHTML = `Features: <b>${names}</b>. By-row looks <b>${fmt(d, 1)} h better</b> (${fmt(100 * d / res.machine.te, 0)} %) on average — a fake improvement. The by-machine number is the one to trust for new machines.`; }
+    else { m.className = "note"; m.innerHTML = `Features: <b>${names}</b>. With these features the two modes are close (difference ${fmt(d, 1)} h). Leakage matters most when features carry machine-specific information; try selecting several sensors, or <b>machine</b> / <b>s5</b>.`; }
+  };
+
+  // ---------- init ----------
+  const layout = () => document.documentElement.style.setProperty("--hh", $("top").offsetHeight + "px");
+  window.addEventListener("resize", () => { layout(); resize(); });
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cc);
+  buildTable(); cols.forEach((c, i) => updateHeader(i)); paintTable(); renderRuns(); layout(); updateNote();
+  state.sel = new Set(); selectionChanged();
+  viewInfo(); resize(); setTab(0);
+  window.addEventListener("load", () => { layout(); resize(); });
+})();
+</script>
+</body>
+</html>

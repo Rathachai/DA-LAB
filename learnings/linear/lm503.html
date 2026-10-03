@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LM503 – Early Warning with a Sliding Window</title>
+<link rel="icon" type="image/svg+xml" href="https://rathachai.github.io/assets/favicon.svg">
+<style>
+:root{
+  --bg:#f4f6fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#2563eb; --brand2:#1d4ed8; --accent:#f59e0b; --pos:#0f766e; --neg:#dc2626; --test:#d97706; --fc:#059669;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;min-height:100vh;font-size:15px;line-height:1.45}
+
+header{position:relative;color:#fff;background:#1e3a8a url("https://rathachai.github.io/images/banner.jpg") center center/cover no-repeat;flex:0 0 auto}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.82),rgba(15,23,42,.45))}
+.head-inner{position:relative;padding:8px 20px;max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{height:24px;width:auto;display:block}
+h1{margin:0;font-size:clamp(17px,2.4vw,22px);font-weight:700;line-height:1.2}
+header p{margin:2px 0 0;max-width:720px;font-size:12.5px;opacity:.95;line-height:1.35}
+.credit{font-size:12px;color:#e5e7eb;text-align:right;white-space:nowrap;opacity:.9}
+.credit a{color:#fff;font-weight:600;text-decoration:none}
+.credit a:hover{text-decoration:underline}
+
+main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1.1fr .9fr;gap:16px;padding:16px;max-width:1400px;width:100%;margin:0 auto}
+.pane{overflow-y:auto;min-height:0;padding-right:4px;display:flex;flex-direction:column;gap:14px;height:calc(100vh - var(--hh,70px) - 32px);min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
+.card h2{margin:0 0 8px;font-size:16px}
+.card h2 small{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+.pane-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 -4px}
+
+canvas{display:block;width:100%;border-radius:8px;background:#fff;border:1px solid var(--line)}
+#chart{aspect-ratio:16/8;touch-action:none;cursor:default}#resChart{aspect-ratio:16/6}
+#lossChart{aspect-ratio:16/8}
+
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.row label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.field{display:flex;flex-direction:column;gap:2px;flex:1 1 150px;min-width:130px}
+.field .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.field .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--brand)}
+button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer;transition:.12s}
+button:hover{border-color:var(--brand);color:var(--brand)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.primary:hover{background:var(--brand2);color:#fff}
+button.warn{background:var(--accent);border-color:var(--accent);color:#fff}
+button.small{padding:4px 8px;font-size:12.5px}
+button.on{background:#dbeafe;border-color:var(--brand);color:var(--brand2);font-weight:600}
+.patterns{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.patterns button{padding:7px 6px;font-size:13px}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:4px}
+.seg{display:inline-flex;gap:6px}
+
+.splitbar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:8px 0 2px;background:#eee}
+#barTrain{background:#2563eb;transition:width .15s}#barTest{background:#d97706;transition:width .15s}
+
+.tablewrap{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table.data{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+table.data th,table.data td{padding:3px 8px;text-align:right;border-bottom:1px solid #f0f1f4;white-space:nowrap}
+table.data thead th{position:sticky;top:0;background:#f8fafc;z-index:2;border-bottom:2px solid var(--line);font-weight:700}
+table.data thead th small{display:block;font-weight:400;color:var(--muted);font-size:10.5px}
+table.data tbody tr{cursor:pointer}
+table.data tbody tr:hover td{background:#eff6ff}
+table.data tbody tr.te td{background:#fff4d6}
+table.data tbody tr.al td.r{color:#be123c;font-weight:700}
+table.data tbody tr.sel td{background:#bfdbfe !important;font-weight:700}
+table.data td.y{font-weight:700;color:#b45309}
+
+.equation{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(13px,2vw,16px);font-weight:600;color:var(--brand);padding:6px 2px;word-break:break-word;line-height:1.6}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kv .k{font-size:12px;color:var(--muted)}
+.kv .v{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+#status{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+#status.ok{background:#ecfdf5;color:#065f46}
+#status.err{background:#fef2f2;color:#991b1b}
+#status.warn{background:#fffbeb;color:#92400e}
+#gap{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+#gap.bad{background:#fffbeb;color:#92400e}
+table.mini{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+table.mini th,table.mini td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+table.mini th:first-child,table.mini td:first-child{text-align:left}
+table.mini th{color:var(--muted);font-weight:600;font-size:12px}
+table.mini td.tr{color:#1d4ed8;font-weight:700}table.mini td.te{color:#b45309;font-weight:700}
+.scroll-x{overflow-x:auto}
+.card ol,.card ul{margin:6px 0 0;padding-left:20px;font-size:13.5px}
+.card code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12.5px}
+
+@media (max-width:860px){
+  main{display:block;padding:12px}
+  .pane{height:auto;overflow:visible;padding:0}
+  .pane + .pane{margin-top:14px}
+  .head-inner{padding:8px 14px;flex-direction:column;align-items:flex-start;gap:4px}
+  .credit{text-align:left;white-space:normal;font-size:11.5px}
+}
+
+#verdict{font-size:13px;padding:8px 10px;border-radius:8px;margin-top:10px;background:#eff6ff;color:#1e40af}
+#verdict.good{background:#ecfdf5;color:#065f46}#verdict.bad{background:#fef2f2;color:#991b1b}#verdict.warn{background:#fffbeb;color:#92400e}
+table.mini tr.cur td{background:#eff6ff;font-weight:700}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+@media (max-width:520px){.trio{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header id="top">
+  <div class="head-inner">
+    <div>
+      <div class="brand">
+        <img src="https://rathachai.github.io/assets/logo.svg" alt="Logo">
+        <h1>LM503 · Early Warning with a Sliding Window</h1>
+      </div>
+      <p>Teach a linear model what a <b>healthy</b> vibration signal looks like, then watch the prediction error (residual) grow when the machine starts to fail and trigger an alarm.</p>
+    </div>
+    <div class="credit">Powered by: Sonnet &nbsp;|&nbsp; AI Whisperer: <a href="https://rathachai.github.io" target="_blank" rel="noopener">rathachai.github.io</a></div>
+  </div>
+</header>
+
+<main>
+  <section class="pane">
+    <p class="pane-title">① Machine signal &amp; early-warning residual</p>
+
+    <div class="card">
+      <h2>Vibration sensor <small>300 hourly readings · 1 point = 1 hour</small></h2>
+      <canvas id="chart" aria-label="Vibration signal chart"></canvas>
+      <div class="legend">
+        <span><i style="border-color:#475569"></i>actual signal</span>
+        <span><i style="border-color:#dc2626;border-top-width:1px"></i>prediction · training part</span>
+        <span><i style="border-color:#dc2626"></i>prediction · monitoring part</span>
+        <span style="color:#be123c">● alarm</span>
+        <span style="color:#0f766e">┆ true fault onset</span>
+        <span style="color:#2563eb">▇ shaded = training (healthy) data</span>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="showPred" checked> prediction line</label>
+        <label><input type="checkbox" id="showAlarm" checked> alarms</label>
+        <label><input type="checkbox" id="reveal"> reveal truth (fault onset)</label>
+      </div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>edit spread (σ, in points)</span><b id="spreadVal">6</b></div>
+          <input type="range" id="spreadSlider" min="1" max="40" step="1" value="6">
+        </div>
+        <button id="resetEdits">↺ Reset edits</button>
+      </div>
+      <p class="hint"><b>Click on the line and drag up or down</b> to inject your own anomaly. Neighbouring points follow smoothly. Everything (model, residuals, alarms) recomputes. Your edits are not counted as the "true" fault, so alarms they cause before the onset count as false alarms. (On touch screens the chart captures touch; scroll by touching outside it.)</p>
+    </div>
+
+    <div class="card">
+      <h2>Residual <small>actual − predicted · the health signal</small></h2>
+      <canvas id="resChart" aria-label="Residual chart"></canvas>
+      <div class="legend">
+        <span><i style="border-color:#2563eb"></i>residual</span>
+        <span><i style="border-color:#d97706;border-top-style:dashed"></i>±k·σ alarm limits</span>
+        <span style="color:#be123c">● alarm</span>
+      </div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>threshold k (alarm if |residual| &gt; k·σ)</span><b id="kVal">3</b></div>
+          <input type="range" id="kSlider" min="1" max="6" step="0.1" value="3">
+        </div>
+        <div class="field">
+          <div class="lab"><span>consecutive exceedances m</span><b id="mVal">1</b></div>
+          <input type="range" id="mSlider" min="1" max="5" step="1" value="1">
+        </div>
+      </div>
+      <p class="hint">σ is the standard deviation of the residuals on the <b>training</b> part. Requiring <b>m</b> exceedances in a row filters out isolated noise spikes, but delays the alarm by m−1 hours.</p>
+    </div>
+
+    <div class="card">
+      <h2>Scenario</h2>
+      <div class="patterns" id="faults"></div>
+      <p class="hint" id="faultDesc"></p>
+      <div class="patterns" id="patterns" style="margin-top:10px"></div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>sensor noise (σ)</span><b id="noiseVal">1.5</b></div>
+          <input type="range" id="noiseSlider" min="0" max="6" step="0.25" value="1.5">
+        </div>
+        <button class="primary" id="regen">🎲 Regenerate</button>
+      </div>
+      <p class="hint">Changing scenario or noise discards manual edits. Regenerate draws new noise and a new fault onset time.</p>
+    </div>
+
+    <div class="card">
+      <h2>Sliding window <small>x₁ … x<sub>w</sub> → y</small></h2>
+      <div class="field">
+        <div class="lab"><span>window size (w)</span><b id="wVal">5</b></div>
+        <input type="range" id="wSlider" min="1" max="10" step="1" value="5">
+      </div>
+      <p class="hint" id="winDesc"></p>
+      <div class="field" style="margin-top:10px">
+        <div class="lab"><span>training fraction of the healthy start (first 180 h)</span><b id="ratioVal">70 %</b></div>
+        <input type="range" id="ratioSlider" min="10" max="90" step="1" value="70">
+      </div>
+      <div class="splitbar"><div id="barTrain" style="width:42%"></div><div id="barTest" style="width:58%"></div></div>
+      <p class="hint" id="splitHint"></p>
+    </div>
+
+    <div class="card">
+      <h2>Window table <small id="tblInfo"></small></h2>
+      <div class="tablewrap"><table class="data" id="table"></table></div>
+      <p class="hint">Each row is one window: <b>x₁</b> is the oldest value, <b>x<sub>w</sub></b> the newest, <b>y</b> the actual next value, then the model's prediction and the residual. Amber rows belong to the monitoring part; red residuals are alarms. Click a row to highlight its window on both charts.</p>
+    </div>
+  </section>
+
+  <section class="pane">
+    <p class="pane-title">② Train the model &amp; read the alarms</p>
+
+    <div class="card">
+      <h2>Model equation</h2>
+      <div class="equation" id="equation">y(t) = β₀</div>
+      <div class="scroll-x"><table class="mini" id="coefTable"></table></div>
+    </div>
+
+    <div class="card">
+      <h2>Gradient descent <small>uses healthy training rows only</small></h2>
+      <div class="row" style="margin-top:0">
+        <button id="stepBtn" class="primary">⏭ Step</button>
+        <button id="playBtn" class="warn">▶ Train</button>
+        <button id="solveBtn">⚡ Solve instantly</button>
+        <button id="resetBtn">↺ Reset</button>
+      </div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>learning rate (α)</span><b id="lrVal">0.050</b></div>
+          <input type="range" id="lrSlider" min="0.005" max="0.08" step="0.005" value="0.05">
+        </div>
+        <div class="field">
+          <div class="lab"><span>speed (steps / frame)</span><b id="spVal">20</b></div>
+          <input type="range" id="spSlider" min="1" max="200" step="1" value="20">
+        </div>
+      </div>
+      <div class="pair" style="margin-top:10px">
+        <div class="kv"><div class="k">iteration</div><div class="v" id="iter">0</div></div>
+        <div class="kv"><div class="k">features used</div><div class="v" id="pCount">0</div></div>
+      </div>
+      <div id="status">Press <b>Train</b> or <b>Solve instantly</b> to fit the model.</div>
+      <p class="hint">After <b>Solve instantly</b> the model re-solves automatically whenever you change the data or settings. <b>Step</b>, <b>Train</b> and <b>Reset</b> switch that off.</p>
+    </div>
+
+    <div class="card">
+      <h2>Alarm report</h2>
+      <div class="trio">
+        <div class="kv"><div class="k">σ (train residuals)</div><div class="v" id="sigma">–</div></div>
+        <div class="kv"><div class="k">limit ±k·σ</div><div class="v" id="limit">–</div></div>
+        <div class="kv"><div class="k">alarm points</div><div class="v" id="nAlarm">–</div></div>
+        <div class="kv"><div class="k">first alarm (t)</div><div class="v" id="firstAl">–</div></div>
+        <div class="kv"><div class="k">detection delay</div><div class="v" id="delay">–</div></div>
+        <div class="kv"><div class="k">false alarms before onset</div><div class="v" id="falseAl">–</div></div>
+      </div>
+      <div id="verdict">Train the model to see alarms.</div>
+      <h2 style="margin-top:14px">Threshold trade-off <small>uses the current m</small></h2>
+      <div class="scroll-x"><table class="mini" id="tradeoff"></table></div>
+      <p class="hint">A low k catches the fault early but raises false alarms; a high k is quiet but slow, and may miss the fault completely. Delay is measured in hours after the true onset.</p>
+    </div>
+
+    <div class="card">
+      <h2>Performance <small>train vs. monitor · lower is better (R²: higher)</small></h2>
+      <div class="scroll-x"><table class="mini">
+        <tr><th>metric</th><th>Train<br><small>healthy start</small></th><th>Monitor<br><small>one step ahead</small></th></tr>
+        <tr><td>MAE</td><td class="tr" id="mae">–</td><td class="te" id="amae">–</td></tr>
+        <tr><td>RMSE</td><td class="tr" id="rmse">–</td><td class="te" id="armse">–</td></tr>
+        <tr><td>MAPE</td><td class="tr" id="mape">–</td><td class="te" id="amape">–</td></tr>
+        <tr><td>MSE (loss)</td><td class="tr" id="mse">–</td><td class="te" id="amse">–</td></tr>
+        <tr><td>R²</td><td class="tr" id="r2">–</td><td class="te" id="ar2">–</td></tr>
+      </table></div>
+      <div id="gap">Train a model to compare train vs. monitor.</div>
+    </div>
+
+    <div class="card">
+      <h2>Loss curve <small>MSE vs. iteration</small></h2>
+      <canvas id="lossChart" aria-label="Loss curve"></canvas>
+      <div class="row">
+        <label><input type="checkbox" id="logLoss"> log scale</label>
+        <span class="hint" style="margin:0"><span style="color:#2563eb">■</span> train &nbsp;<span style="color:#d97706">■</span> monitor &nbsp;<span style="color:#9333ea">╌</span> best train MSE: <b id="optMse">–</b></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>How it works</h2>
+      <ol>
+        <li><b>Window:</b> every hour, the last <i>w</i> readings (x₁…x<sub>w</sub>) are used to predict the next reading (y). The window slides forward by 1 hour.</li>
+        <li><b>Learn "healthy":</b> a linear model <code>y = β₀ + β₁x₁ + … + β<sub>w</sub>x<sub>w</sub></code> is fitted <i>only</i> on the first part of the record, when the machine is known to be healthy (chronological split).</li>
+        <li><b>Monitor:</b> afterwards the model keeps predicting one step ahead from the real readings. While the machine behaves as before, the <b>residual</b> (actual − predicted) stays small and noise-like.</li>
+        <li><b>Alarm:</b> when the machine starts to fail, reality drifts away from what "healthy" predicts and residuals grow. Raise an alarm if |residual| &gt; k·σ, where σ is the residual spread seen during training (optionally m times in a row).</li>
+        <li><b>Trade-off:</b> small k = early warning but false alarms; large k = few false alarms but late or missed detection. Slow drifts are hard: the model partly follows a gentle trend, so its residual stays small. Try a window of 1 vs. 10 on each fault.</li>
+      </ol>
+      <p class="hint">Try: gradual drift with a "constant" pattern vs. a "sine" pattern; growing variance with k = 2 vs. 5; then drag your own spike into the healthy part and watch a false alarm appear.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const N = 300, FIRST = 180, YMIN = 0, YMAX = 100;
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / Math.max(1, a.length - 1)) || 1; };
+  const fmt = (v, d = 3) => !isFinite(v) ? "∞" : Math.abs(v) >= 1e6 ? v.toExponential(2) : v.toFixed(Math.abs(v) >= 100 ? 1 : d);
+  const sub = n => String(n).replace(/\d/g, d => "₀₁₂₃₄₅₆₇₈₉"[d]);
+  const sgn = v => v < 0 ? "−" : "+";
+
+  const PATTERNS = {
+    cycle: { label: "∿ Machine cycle", desc: "Healthy base: a regular 40-hour load cycle (sine-like).", gen: t => 50 + 15 * Math.sin(2 * Math.PI * t / 40) },
+    const: { label: "▬ Constant", desc: "Healthy base: steady vibration level.", gen: t => 50 },
+    slow:  { label: "〰 Slow wave", desc: "Healthy base: a slow 120-hour wave (e.g. day/night temperature).", gen: t => 50 + 12 * Math.sin(2 * Math.PI * t / 120) }
+  };
+  const FAULTS = {
+    none:  { label: "✔ No fault", desc: "The machine stays healthy: every alarm is a false alarm.", f: () => 0 },
+    drift: { label: "↗ Gradual drift", desc: "Wear slowly pushes the level up (+0.3 per hour after onset). Slow trends are hard for a one-step predictor: it partly follows them.", f: (dt) => 0.3 * dt },
+    shift: { label: "⚡ Spike / level shift", desc: "A sudden shock: a short spike followed by a permanent level shift of +12.", f: (dt) => 12 + (dt < 3 ? [22, 10, 5][dt] : 0) },
+    noisy: { label: "≋ Growing variance", desc: "The vibration gets rougher: extra random noise grows steadily after onset. The mean does not change, only the scatter.", f: (dt, t, S) => 0.07 * dt * S.u2[t] },
+    bear:  { label: "◎ Bearing oscillation", desc: "A bearing defect adds a fast (≈2.7 h period) oscillation whose amplitude grows after onset.", f: (dt, t) => 0.15 * dt * Math.sin(2 * Math.PI * t / 2.7) }
+  };
+  const S = { pat: "cycle", fault: "drift", onset: 200, unit: [], u2: [], base: [], s: [], noise: 1.5, spread: 6, w: 5, ratio: 70, k: 3, m: 1, sel: null, live: true };
+  const model = { w: [], b: 0, iter: 0, history: [], histTest: [], playing: false, lr: 0.05, converged: false, diverged: false, trained: false };
+
+  function makeBase() {
+    S.base = Array.from({ length: N }, (_, t) => {
+      const dt = t - S.onset, fe = S.onset != null && dt >= 0 ? FAULTS[S.fault].f(dt, t, S) : 0;
+      return clamp(PATTERNS[S.pat].gen(t) + S.noise * S.unit[t] + fe, YMIN + 1, YMAX - 1);
+    });
+    S.s = S.base.slice();
+  }
+  function generate() {
+    S.onset = S.fault === "none" ? null : 195 + Math.floor(Math.random() * 31);
+    S.unit = Array.from({ length: N }, gauss); S.u2 = Array.from({ length: N }, gauss); makeBase();
+  }
+
+  // ---------- windows ----------
+  let rows = [], nTr = 0, nTe = 0, fm = [], fs = [], ym = 0, trainEnd = 0;
+  function buildSamples() {
+    const w = S.w; rows = [];
+    trainEnd = Math.max(Math.round(FIRST * S.ratio / 100), w + 3);
+    for (let t = w; t < N; t++) rows.push({ t, x: S.s.slice(t - w, t), y: S.s[t], test: t >= trainEnd });
+    const tr = rows.filter(r => !r.test); nTr = tr.length; nTe = rows.length - nTr;
+    fm = []; fs = [];
+    for (let j = 0; j < w; j++) { const col = tr.map(r => r.x[j]); fm.push(mean(col)); fs.push(sd(col)); }
+    ym = mean(tr.map(r => r.y));
+    rows.forEach(r => r.z = r.x.map((v, j) => (v - fm[j]) / fs[j]));
+  }
+  const trainRows = () => rows.filter(r => !r.test), testRows = () => rows.filter(r => r.test);
+
+  // ---------- model ----------
+  const predictRow = r => { let y = model.b; for (let j = 0; j < model.w.length; j++) y += model.w[j] * r.z[j]; return y; };
+  function evalSet(set, f = predictRow) {
+    if (!set.length) return null;
+    let se = 0, ae = 0, pe = 0, pn = 0; const my = mean(set.map(r => r.y));
+    set.forEach(r => { const e = r.y - f(r); se += e * e; ae += Math.abs(e); if (Math.abs(r.y) > 1e-6) { pe += Math.abs(e / r.y); pn++; } });
+    const n = set.length, mse = se / n, sst = set.reduce((t, r) => t + (r.y - my) ** 2, 0) / n;
+    return { mse, rmse: Math.sqrt(mse), mae: ae / n, mape: pn ? 100 * pe / pn : NaN, r2: sst > 1e-9 ? 1 - mse / sst : NaN };
+  }
+  function gradient() {
+    const tr = trainRows(), p = S.w, g = Array(p).fill(0); let gb = 0;
+    tr.forEach(r => { const e = r.y - predictRow(r); gb += -2 * e; for (let j = 0; j < p; j++) g[j] += -2 * r.z[j] * e; });
+    return { g: g.map(v => v / tr.length), gb: gb / tr.length };
+  }
+  function solveExact() {
+    const tr = trainRows(), p = S.w, n = tr.length, A = [], bv = [];
+    for (let a = 0; a < p; a++) {
+      A.push(Array.from({ length: p }, (_, b) => tr.reduce((t, r) => t + r.z[a] * r.z[b], 0) / n + (a === b ? 1e-8 : 0)));
+      bv.push(tr.reduce((t, r) => t + r.z[a] * (r.y - ym), 0) / n);
+    }
+    for (let c = 0; c < p; c++) {
+      let piv = c; for (let r = c + 1; r < p; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      [A[c], A[piv]] = [A[piv], A[c]]; [bv[c], bv[piv]] = [bv[piv], bv[c]];
+      for (let r = 0; r < p; r++) if (r !== c) { const f = A[r][c] / A[c][c]; for (let k = c; k < p; k++) A[r][k] -= f * A[c][k]; bv[r] -= f * bv[c]; }
+    }
+    return { w: bv.map((v, i) => v / A[i][i]), b: ym };
+  }
+  function optMse() { const sv = [model.w, model.b], s = solveExact(); model.w = s.w; model.b = s.b; const m = evalSet(trainRows()).mse; [model.w, model.b] = sv; return m; }
+  function coefs() {
+    const betas = model.w.map((w, j) => w / fs[j]);
+    return { b0: model.b - betas.reduce((t, b, j) => t + b * fm[j], 0), betas };
+  }
+
+  // ---------- alarms ----------
+  let sigma = 0, A = null;
+  function analyze() {
+    rows.forEach(r => { r.pred = model.trained ? predictRow(r) : NaN; r.res = r.y - r.pred; });
+    if (!model.trained) { sigma = 0; return; }
+    sigma = Math.max(sd(trainRows().map(r => r.res)), 1e-6);
+  }
+  function alarmStats(k, m) {
+    const flags = rows.map(() => false); let c = 0, fa = 0, first = null, cnt = 0;
+    rows.forEach((r, i) => {
+      if (!r.test) { c = 0; return; }
+      c = Math.abs(r.res) > k * sigma ? c + 1 : 0;
+      if (c >= m) { flags[i] = true; cnt++; if (S.onset == null || r.t < S.onset) fa++; else if (first == null) first = r.t; }
+    });
+    return { flags, fa, first, cnt, delay: first != null && S.onset != null ? first - S.onset : null };
+  }
+
+  // ---------- charts ----------
+  const cv = $("chart"), cx = cv.getContext("2d"), rc = $("resChart"), rx = rc.getContext("2d"), lc = $("lossChart"), lx = lc.getContext("2d");
+  const PAD = { l: 40, r: 10, t: 10, b: 26 };
+  let W = 0, H = 0, RW = 0, RH = 0, LW = 0, LH = 0, hoverT = null, drag = null, rMax = 1;
+  const sx = (t, w = W) => PAD.l + t / (N - 1) * (w - PAD.l - PAD.r);
+  const sy = v => H - PAD.b - (v - YMIN) / (YMAX - YMIN) * (H - PAD.t - PAD.b);
+  const ix = px => (px - PAD.l) / (W - PAD.l - PAD.r) * (N - 1);
+  const iy = py => YMIN + (H - PAD.b - py) / (H - PAD.t - PAD.b) * (YMAX - YMIN);
+  const ry = v => RH - PAD.b - (v + rMax) / (2 * rMax) * (RH - PAD.t - PAD.b);
+  function fit(c, ctx) { const d = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight; c.width = Math.round(w * d); c.height = Math.round(h * d); ctx.setTransform(d, 0, 0, d, 0, 0); return [w, h]; }
+  function resize() { [W, H] = fit(cv, cx); [RW, RH] = fit(rc, rx); [LW, LH] = fit(lc, lx); draw(); drawRes(); drawLoss(); }
+
+  function frameCommon(ctx, w, h, yAxis) {
+    ctx.clearRect(0, 0, w, h); ctx.font = "11px system-ui, sans-serif"; ctx.textBaseline = "middle";
+    if (rows.length) {
+      const x0 = sx(trainEnd - 0.5, w);
+      ctx.fillStyle = "rgba(37,99,235,.08)"; ctx.fillRect(PAD.l, PAD.t, x0 - PAD.l, h - PAD.t - PAD.b);
+      ctx.fillStyle = "#1d4ed8"; ctx.textAlign = "left"; ctx.fillText("training (healthy)", PAD.l + 4, PAD.t + 8);
+      ctx.fillStyle = "#b45309"; ctx.textAlign = "left"; ctx.fillText("monitoring →", x0 + 4, PAD.t + 8);
+    }
+    ctx.strokeStyle = "#eef0f4"; ctx.fillStyle = "#6b7280"; ctx.lineWidth = 1; ctx.textAlign = "right";
+    yAxis();
+    ctx.textAlign = "center";
+    for (let t = 0; t < N; t += 50) { ctx.beginPath(); ctx.moveTo(sx(t, w), PAD.t); ctx.lineTo(sx(t, w), h - PAD.b); ctx.stroke(); ctx.fillText(t, sx(t, w), h - PAD.b + 12); }
+    ctx.fillText("t (hours)", w - PAD.r - 26, h - 6);
+    ctx.strokeStyle = "#9ca3af"; ctx.strokeRect(PAD.l, PAD.t, w - PAD.l - PAD.r, h - PAD.t - PAD.b);
+  }
+  function overlays(ctx, w, h) {
+    if (S.sel != null && rows[S.sel]) {
+      const r = rows[S.sel];
+      ctx.fillStyle = "rgba(37,99,235,.12)"; ctx.fillRect(sx(r.t - S.w, w) - 3, PAD.t, sx(r.t - 1, w) - sx(r.t - S.w, w) + 6, h - PAD.t - PAD.b);
+      ctx.fillStyle = "rgba(217,119,6,.22)"; ctx.fillRect(sx(r.t, w) - 4, PAD.t, 8, h - PAD.t - PAD.b);
+    }
+    if ($("reveal").checked && S.onset != null) {
+      ctx.strokeStyle = "#0f766e"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(sx(S.onset, w), PAD.t); ctx.lineTo(sx(S.onset, w), h - PAD.b); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = "#0f766e"; ctx.textAlign = "left"; ctx.fillText("true onset", sx(S.onset, w) + 4, h - PAD.b - 8);
+    }
+  }
+  function draw() {
+    frameCommon(cx, W, H, () => { for (let v = YMIN; v <= YMAX; v += 20) { cx.beginPath(); cx.moveTo(PAD.l, sy(v)); cx.lineTo(W - PAD.r, sy(v)); cx.stroke(); cx.fillText(v, PAD.l - 6, sy(v)); } });
+    cx.save(); cx.beginPath(); cx.rect(PAD.l, PAD.t, W - PAD.l - PAD.r, H - PAD.t - PAD.b); cx.clip();
+    overlays(cx, W, H);
+    if (drag) { const sg = S.spread; cx.fillStyle = "rgba(245,158,11,.12)"; cx.fillRect(sx(drag.t0 - 2 * sg), PAD.t, sx(drag.t0 + 2 * sg) - sx(drag.t0 - 2 * sg), H - PAD.t - PAD.b); }
+    cx.strokeStyle = "#475569"; cx.lineWidth = 1.5; cx.beginPath();
+    S.s.forEach((v, t) => t ? cx.lineTo(sx(t), sy(v)) : cx.moveTo(sx(t), sy(v))); cx.stroke();
+    if (model.trained && $("showPred").checked) {
+      const py = rows.map(r => sy(clamp(r.pred, -50, 150)));
+      [false, true].forEach(te => {
+        cx.strokeStyle = "#dc2626"; cx.lineWidth = te ? 2 : 1; cx.beginPath();
+        for (let i = 1; i < rows.length; i++) if (rows[i].test === te) { cx.moveTo(sx(rows[i - 1].t), py[i - 1]); cx.lineTo(sx(rows[i].t), py[i]); }
+        cx.stroke();
+      });
+    }
+    if (A && $("showAlarm").checked) {
+      cx.fillStyle = "#be123c"; cx.strokeStyle = "#fff"; cx.lineWidth = 1.2;
+      rows.forEach((r, i) => { if (!A.flags[i]) return; cx.beginPath(); cx.arc(sx(r.t), sy(r.y), 4.2, 0, 7); cx.fill(); cx.stroke(); });
+      if (A.first != null) { cx.strokeStyle = "#be123c"; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(sx(A.first), PAD.t + 14); cx.lineTo(sx(A.first), H - PAD.b); cx.stroke(); cx.fillStyle = "#be123c"; cx.textAlign = "right"; cx.fillText("first alarm", sx(A.first) - 4, PAD.t + 20); }
+    }
+    if (S.sel != null && rows[S.sel]) {
+      const r = rows[S.sel]; cx.lineWidth = 2;
+      cx.strokeStyle = "#2563eb"; for (let t = r.t - S.w; t < r.t; t++) { cx.beginPath(); cx.arc(sx(t), sy(S.s[t]), 5, 0, 7); cx.stroke(); }
+      cx.strokeStyle = "#d97706"; cx.beginPath(); cx.arc(sx(r.t), sy(r.y), 6, 0, 7); cx.stroke();
+    }
+    if (hoverT != null && !drag) { cx.strokeStyle = "#f59e0b"; cx.lineWidth = 2; cx.beginPath(); cx.arc(sx(hoverT), sy(S.s[hoverT]), 6, 0, 7); cx.stroke(); }
+    if (drag) { cx.fillStyle = "#f59e0b"; cx.beginPath(); cx.arc(sx(drag.t0), sy(S.s[drag.t0]), 6, 0, 7); cx.fill(); }
+    cx.restore(); cx.lineWidth = 1;
+  }
+  function drawRes() {
+    if (!A) {
+      rMax = 1; frameCommon(rx, RW, RH, () => {});
+      rx.fillStyle = "#6b7280"; rx.textAlign = "center"; rx.fillText("train the model to see residuals", RW / 2, RH / 2); return;
+    }
+    const mx = Math.max(...rows.map(r => Math.abs(r.res)).filter(isFinite), 0);
+    rMax = Math.max(mx * 1.08, S.k * sigma * 1.4, 1e-3);
+    const step = [0.5, 1, 2, 5, 10, 20, 50].find(s => 2 * rMax / s <= 6) || 50;
+    frameCommon(rx, RW, RH, () => { for (let v = -Math.floor(rMax / step) * step; v <= rMax; v += step) { rx.beginPath(); rx.moveTo(PAD.l, ry(v)); rx.lineTo(RW - PAD.r, ry(v)); rx.stroke(); rx.fillText(fmt(v, 1), PAD.l - 6, ry(v)); } });
+    rx.save(); rx.beginPath(); rx.rect(PAD.l, PAD.t, RW - PAD.l - PAD.r, RH - PAD.t - PAD.b); rx.clip();
+    overlays(rx, RW, RH);
+    const lim = S.k * sigma;
+    rx.fillStyle = "rgba(217,119,6,.10)"; rx.fillRect(PAD.l, ry(lim), RW - PAD.l - PAD.r, ry(-lim) - ry(lim));
+    rx.strokeStyle = "#9ca3af"; rx.lineWidth = 1; rx.beginPath(); rx.moveTo(PAD.l, ry(0)); rx.lineTo(RW - PAD.r, ry(0)); rx.stroke();
+    rx.strokeStyle = "#d97706"; rx.lineWidth = 1.5; rx.setLineDash([6, 4]); rx.beginPath();
+    [lim, -lim].forEach(v => { rx.moveTo(PAD.l, ry(v)); rx.lineTo(RW - PAD.r, ry(v)); }); rx.stroke(); rx.setLineDash([]);
+    rx.fillStyle = "#b45309"; rx.textAlign = "right"; rx.fillText("+" + S.k.toFixed(1) + "σ", RW - PAD.r - 3, ry(lim) - 7); rx.fillText("−" + S.k.toFixed(1) + "σ", RW - PAD.r - 3, ry(-lim) + 7);
+    rx.strokeStyle = "#2563eb"; rx.lineWidth = 1.3; rx.beginPath();
+    rows.forEach((r, i) => i ? rx.lineTo(sx(r.t, RW), ry(r.res)) : rx.moveTo(sx(r.t, RW), ry(r.res))); rx.stroke();
+    rx.fillStyle = "#be123c"; rx.strokeStyle = "#fff"; rx.lineWidth = 1;
+    if ($("showAlarm").checked) rows.forEach((r, i) => { if (!A.flags[i]) return; rx.beginPath(); rx.arc(sx(r.t, RW), ry(r.res), 3.6, 0, 7); rx.fill(); rx.stroke(); });
+    if (S.sel != null && rows[S.sel]) { const r = rows[S.sel]; rx.strokeStyle = "#d97706"; rx.lineWidth = 2; rx.beginPath(); rx.arc(sx(r.t, RW), ry(r.res), 5, 0, 7); rx.stroke(); }
+    rx.restore(); rx.lineWidth = 1;
+  }
+  function drawLoss() {
+    lx.clearRect(0, 0, LW, LH);
+    const P = { l: 52, r: 10, t: 10, b: 24 }, hist = model.history, hT = model.histTest.length === hist.length && model.histTest.every(isFinite) ? model.histTest : [], log = $("logLoss").checked;
+    lx.font = "11px system-ui, sans-serif"; lx.fillStyle = "#6b7280"; lx.strokeStyle = "#9ca3af";
+    lx.strokeRect(P.l, P.t, LW - P.l - P.r, LH - P.t - P.b);
+    if (!hist.length || !hist.every(isFinite)) { lx.textAlign = "center"; lx.textBaseline = "middle"; lx.fillText(hist.length ? "diverged" : "train the model to see the loss", LW / 2, LH / 2); return; }
+    const opt = optMse(), f = v => log ? Math.log10(Math.max(v, 1e-6)) : v;
+    let lo = Math.min(...hist.map(f), ...hT.map(f), f(opt)), hi = Math.max(...hist.map(f), ...hT.map(f));
+    if (!log) lo = Math.min(lo, 0); if (hi - lo < 1e-9) hi = lo + 1;
+    const n = hist.length, span = Math.max(n - 1, 1), X = i => P.l + i / span * (LW - P.l - P.r), Yp = v => LH - P.b - (f(v) - lo) / (hi - lo) * (LH - P.t - P.b);
+    lx.textAlign = "right"; lx.textBaseline = "middle"; const lab = v => log ? "10^" + v.toFixed(1) : fmt(v, 1);
+    lx.fillText(lab(hi), P.l - 5, P.t + 4); lx.fillText(lab(lo), P.l - 5, LH - P.b - 4);
+    lx.textAlign = "left"; lx.textBaseline = "top"; lx.fillText("0", P.l, LH - P.b + 6); lx.textAlign = "right"; lx.fillText("iter " + (n - 1), LW - P.r, LH - P.b + 6);
+    lx.strokeStyle = "#9333ea"; lx.setLineDash([5, 4]); lx.beginPath(); lx.moveTo(P.l, Yp(opt)); lx.lineTo(LW - P.r, Yp(opt)); lx.stroke(); lx.setLineDash([]);
+    const stride = Math.max(1, Math.floor(n / 600));
+    const curve = (a, c) => { lx.strokeStyle = c; lx.lineWidth = 2; lx.beginPath(); for (let i = 0; i < n; i += stride) i ? lx.lineTo(X(i), Yp(a[i])) : lx.moveTo(X(i), Yp(a[i])); lx.lineTo(X(n - 1), Yp(a[n - 1])); lx.stroke(); };
+    curve(hist, "#2563eb"); if (hT.length) curve(hT, "#d97706"); lx.lineWidth = 1;
+  }
+
+  // ---------- table ----------
+  function buildTable() {
+    const w = S.w, ok = model.trained;
+    let h = "<thead><tr><th>t</th>";
+    for (let j = 0; j < w; j++) h += `<th>x${j + 1}<small>t−${w - j}</small></th>`;
+    h += "<th>y<small>actual</small></th><th>ŷ<small>predicted</small></th><th>residual<small>y − ŷ</small></th></tr></thead><tbody>";
+    rows.forEach((r, i) => { h += `<tr data-i="${i}" class="${r.test ? "te" : ""}${A && A.flags[i] ? " al" : ""}${S.sel === i ? " sel" : ""}"><td>${r.t}</td>${r.x.map(v => `<td>${v.toFixed(1)}</td>`).join("")}<td class="y">${r.y.toFixed(1)}</td><td>${ok ? r.pred.toFixed(1) : "–"}</td><td class="r">${ok ? r.res.toFixed(2) : "–"}</td></tr>`; });
+    $("table").innerHTML = h + "</tbody>";
+    $("tblInfo").textContent = `${rows.length} windows (= 300 − ${w}) · ${nTr} train / ${nTe} monitor`;
+  }
+  $("table").addEventListener("click", e => {
+    const tr = e.target.closest("tr[data-i]"); if (!tr) return;
+    S.sel = S.sel === +tr.dataset.i ? null : +tr.dataset.i;
+    document.querySelectorAll("#table tr.sel").forEach(r => r.classList.remove("sel"));
+    if (S.sel != null) tr.classList.add("sel"); draw(); drawRes();
+  });
+
+  // ---------- refresh ----------
+  function setStatus(msg, cls = "") { const s = $("status"); s.className = cls; s.innerHTML = msg; }
+  function refresh() {
+    analyze(); A = model.trained ? alarmStats(S.k, S.m) : null;
+    const tr = trainRows(), te = testRows(), a = evalSet(tr), b = evalSet(te);
+    $("iter").textContent = model.iter; $("pCount").textContent = S.w;
+    const put = (pre, m) => { const k = (id, v) => $(pre + id).textContent = v;
+      if (!m || !model.trained) { ["mae", "rmse", "mape", "mse", "r2"].forEach(x => k(x, "–")); return; }
+      k("mae", fmt(m.mae)); k("rmse", fmt(m.rmse)); k("mse", fmt(m.mse)); k("r2", fmt(m.r2)); k("mape", isFinite(m.mape) ? fmt(m.mape, 2) + " %" : "n/a"); };
+    put("", a); put("a", b);
+    const gap = $("gap");
+    if (!model.trained) { gap.className = ""; gap.textContent = "Train a model to compare train vs. monitor."; }
+    else { const q = b.rmse / Math.max(a.rmse, 1e-9); gap.className = q > 1.25 ? "bad" : "";
+      gap.innerHTML = q > 1.25 ? `⚠️ Monitor RMSE is <b>${q.toFixed(2)}×</b> the train RMSE: the model no longer matches the machine, so the machine (or the data you edited) behaves differently from the healthy start.` : `✅ Monitor RMSE ≈ <b>${q.toFixed(2)}×</b> train RMSE: the signal still behaves like the healthy start.`; }
+    const { b0, betas } = coefs();
+    let eq = "y(t) = " + fmt(b0, 3); betas.forEach((v, j) => eq += ` ${sgn(v)} ${fmt(Math.abs(v), 3)}·x${j + 1}`);
+    $("equation").textContent = eq;
+    let t = "<tr><th>coef</th><th>feature</th><th>meaning</th><th>β</th></tr><tr><td>β₀</td><td>intercept</td><td>–</td><td>" + fmt(b0) + "</td></tr>";
+    betas.forEach((v, j) => t += `<tr><td>β${sub(j + 1)}</td><td>x${j + 1}</td><td>value at t−${S.w - j}</td><td>${fmt(v)}</td></tr>`);
+    $("coefTable").innerHTML = t;
+    $("optMse").textContent = fmt(optMse());
+    $("ratioVal").textContent = `${S.ratio} % (${trainEnd} h)`;
+    $("barTrain").style.width = (trainEnd / N * 100) + "%"; $("barTest").style.width = (100 - trainEnd / N * 100) + "%";
+    report(); buildTable(); draw(); drawRes(); drawLoss();
+  }
+  function report() {
+    const set = (id, v) => $(id).textContent = v, vd = $("verdict");
+    if (!A) { ["sigma", "limit", "nAlarm", "firstAl", "delay", "falseAl"].forEach(i => set(i, "–")); vd.className = ""; vd.textContent = "Train the model to see alarms."; $("tradeoff").innerHTML = ""; return; }
+    set("sigma", fmt(sigma)); set("limit", "±" + fmt(S.k * sigma, 2)); set("nAlarm", A.cnt);
+    set("firstAl", A.first != null ? A.first : "–"); set("delay", A.delay != null ? A.delay + " h" : "–"); set("falseAl", A.fa);
+    if (S.onset == null) { vd.className = A.fa ? "warn" : "good"; vd.innerHTML = A.fa ? `No fault exists, so all <b>${A.fa}</b> alarm point(s) are false alarms. Raise k or m.` : "✅ No fault and no alarm: the system stays quiet."; }
+    else if (A.first != null) {
+      vd.className = A.fa ? "warn" : "good";
+      vd.innerHTML = `🚨 Fault detected <b>${A.delay} hour${A.delay === 1 ? "" : "s"}</b> after the true onset (t = ${S.onset})` + (A.fa ? `, but with <b>${A.fa}</b> false alarm point(s) before the onset. Raise k or m to calm them, at the cost of a later alarm.` : ", with no false alarms before the onset.");
+    } else { vd.className = "bad"; vd.innerHTML = `❌ <b>Missed detection:</b> no alarm after the fault began at t = ${S.onset}. Lower k, use a smaller m, or try another window size.` + (A.fa ? ` (${A.fa} false alarm point(s) occurred before it.)` : ""); }
+    let h = "<tr><th>k</th><th>false alarms</th><th>detection delay</th></tr>";
+    for (let k = 1; k <= 6; k++) { const s = alarmStats(k, S.m), cur = Math.abs(S.k - k) < 0.05;
+      h += `<tr class="${cur ? "cur" : ""}"><td>${k}σ</td><td>${s.fa}</td><td>${S.onset == null ? "n/a" : s.delay != null ? s.delay + " h" : "missed"}</td></tr>`; }
+    $("tradeoff").innerHTML = h;
+  }
+
+  // ---------- training ----------
+  function stop() { model.playing = false; $("playBtn").textContent = "▶ Train"; }
+  function setSolved() { const s = solveExact(); model.w = s.w; model.b = s.b; model.iter++; model.trained = true; model.converged = true; pushHist(); }
+  function resetModel(msg) {
+    stop(); buildSamples();
+    model.w = Array(S.w).fill(0); model.b = 0; model.iter = 0; model.converged = false; model.diverged = false; model.trained = false;
+    model.history = [evalSet(trainRows()).mse]; const te = evalSet(testRows()); model.histTest = [te ? te.mse : NaN];
+    if (S.live) { setSolved(); setStatus("✅ Solved instantly on the healthy training rows (auto re-solves after changes)."); }
+    else if (msg) setStatus(msg);
+    refresh();
+  }
+  function pushHist() { model.history.push(evalSet(trainRows()).mse); const te = evalSet(testRows()); model.histTest.push(te ? te.mse : NaN); }
+  function step() {
+    const { g, gb } = gradient();
+    for (let j = 0; j < g.length; j++) model.w[j] -= model.lr * g[j];
+    model.b -= model.lr * gb; model.iter++; model.trained = true; pushHist();
+    const mse = model.history[model.history.length - 1];
+    if (!isFinite(mse) || mse > 1e12) { model.diverged = true; stop(); setStatus("💥 Diverged — learning rate too large. Press <b>Reset</b> and lower α.", "err"); return false; }
+    if (Math.hypot(gb, ...g) < 1e-3 || model.iter >= 50000) { model.converged = true; stop(); done("Converged"); return false; }
+    return true;
+  }
+  function done(word) { const a = evalSet(trainRows()), b = evalSet(testRows()); setStatus(`✅ ${word}: Train MAE = ${fmt(a.mae, 2)}, Monitor MAE = ${fmt(b.mae, 2)}. See the residual chart for alarms.`, "ok"); }
+  function frame() {
+    if (!model.playing) return;
+    let ok = true; for (let i = 0; i < +$("spSlider").value && ok; i++) ok = step();
+    if (ok) setStatus(`Training… train MSE = ${fmt(model.history[model.history.length - 1])}`);
+    refresh(); if (model.playing) requestAnimationFrame(frame);
+  }
+  $("playBtn").onclick = () => {
+    S.live = false;
+    if (model.playing) { stop(); setStatus("Paused."); return; }
+    if (model.converged || model.diverged) resetModel();
+    model.playing = true; $("playBtn").textContent = "⏸ Pause"; requestAnimationFrame(frame);
+  };
+  $("stepBtn").onclick = () => { S.live = false; stop(); if (model.converged || model.diverged) resetModel(); if (step()) setStatus(`Step ${model.iter}.`); refresh(); };
+  $("solveBtn").onclick = () => { stop(); S.live = true; setSolved(); refresh(); done("Solved with the normal equation"); };
+  $("resetBtn").onclick = () => { S.live = false; resetModel("Model reset to zeros."); };
+  $("lrSlider").oninput = e => { model.lr = +e.target.value; $("lrVal").textContent = model.lr.toFixed(3); };
+  $("spSlider").oninput = e => $("spVal").textContent = e.target.value;
+  $("logLoss").onchange = drawLoss;
+
+  // ---------- editing ----------
+  const kernel = d => Math.exp(-0.5 * (d / S.spread) ** 2);
+  const pos = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  function nearPoint(p) {
+    const t = clamp(Math.round(ix(p.x)), 0, N - 1);
+    return Math.abs(p.x - sx(t)) <= 14 && Math.abs(p.y - sy(S.s[t])) <= 20 ? t : null;
+  }
+  cv.addEventListener("pointerdown", e => {
+    const t = nearPoint(pos(e)); if (t == null) return;
+    cv.setPointerCapture(e.pointerId); stop();
+    drag = { t0: t, base: S.s.slice() }; draw();
+  });
+  cv.addEventListener("pointermove", e => {
+    const p = pos(e);
+    if (drag) {
+      const target = clamp(iy(p.y), YMIN + 1, YMAX - 1), dy = target - drag.base[drag.t0];
+      for (let i = 0; i < N; i++) S.s[i] = clamp(drag.base[i] + dy * kernel(Math.abs(i - drag.t0)), YMIN + 1, YMAX - 1);
+      resetModel("Data edited — the model was reset. Train again.");
+    } else { hoverT = nearPoint(p); cv.style.cursor = hoverT != null ? "ns-resize" : "default"; draw(); }
+  });
+  const end = () => { drag = null; draw(); };
+  cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+  cv.addEventListener("pointerleave", () => { hoverT = null; if (!drag) draw(); });
+
+  // ---------- controls ----------
+  function mkButtons(boxId, obj, cb) { const box = $(boxId); Object.entries(obj).forEach(([k, P]) => { const b = document.createElement("button"); b.textContent = P.label; b.dataset.k = k; b.onclick = () => cb(k); box.appendChild(b); }); }
+  const mark = (boxId, k) => document.querySelectorAll("#" + boxId + " button").forEach(b => b.classList.toggle("on", b.dataset.k === k));
+  function scenarioText() { $("faultDesc").textContent = FAULTS[S.fault].desc + " " + PATTERNS[S.pat].desc; }
+  mkButtons("faults", FAULTS, k => { S.fault = k; mark("faults", k); scenarioText(); generate(); S.sel = null; resetModel("Scenario changed."); $("reveal").checked = $("reveal").checked; });
+  mkButtons("patterns", PATTERNS, k => { S.pat = k; mark("patterns", k); scenarioText(); makeBase(); S.sel = null; resetModel("Pattern changed."); });
+  $("noiseSlider").oninput = e => { S.noise = +e.target.value; $("noiseVal").textContent = S.noise.toFixed(2).replace(/0$/, ""); makeBase(); resetModel(); };
+  $("regen").onclick = () => { generate(); resetModel("New random values generated."); };
+  $("resetEdits").onclick = () => { S.s = S.base.slice(); resetModel("Edits reset."); };
+  $("spreadSlider").oninput = e => { S.spread = +e.target.value; $("spreadVal").textContent = S.spread; };
+  ["showPred", "showAlarm", "reveal"].forEach(id => $(id).onchange = () => { draw(); drawRes(); });
+  $("kSlider").oninput = e => { S.k = +e.target.value; $("kVal").textContent = S.k.toFixed(1); refresh(); };
+  $("mSlider").oninput = e => { S.m = +e.target.value; $("mVal").textContent = S.m; refresh(); };
+  function winText() { $("wVal").textContent = S.w; $("winDesc").innerHTML = `Each row uses the previous <b>${S.w}</b> reading${S.w > 1 ? "s" : ""} (x₁ = oldest … x${sub(S.w)} = newest) to predict the next one, <b>y</b>. Sliding by 1 gives <b>${N - S.w}</b> rows from 300 points.`; }
+  $("wSlider").oninput = e => { S.w = +e.target.value; S.sel = null; winText(); resetModel(); };
+  $("ratioSlider").oninput = e => { S.ratio = +e.target.value; S.sel = null; resetModel(); };
+  $("splitHint").innerHTML = "<b>Chronological:</b> the model learns only from the first part of the healthy start (blue). Everything after it is monitored (amber). The fault never begins before t = 195, so training data are always healthy unless you edit them.";
+
+  // ---------- init ----------
+  const layout = () => document.documentElement.style.setProperty("--hh", $("top").offsetHeight + "px");
+  window.addEventListener("resize", () => { layout(); resize(); });
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv);
+  layout(); winText(); $("lrSlider").dispatchEvent(new Event("input"));
+  mark("faults", S.fault); mark("patterns", S.pat); scenarioText();
+  generate(); resetModel(); resize();
+  window.addEventListener("load", () => { layout(); resize(); });
+  window.__lm = { S, model, get A() { return A; }, get sigma() { return sigma; }, FAULTS, alarmStats, resetModel };
+})();
+</script>
+</body>
+</html>

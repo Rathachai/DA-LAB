@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LM504 – The Cost of Wrong Predictions</title>
+<link rel="icon" type="image/svg+xml" href="https://rathachai.github.io/assets/favicon.svg">
+<style>
+:root{
+  --bg:#f4f6fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#2563eb; --brand2:#1d4ed8; --accent:#f59e0b; --good:#059669; --bad:#dc2626; --amber:#d97706;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;min-height:100vh;font-size:15px;line-height:1.45}
+
+header{position:relative;color:#fff;background:#1e3a8a url("https://rathachai.github.io/images/banner.jpg") center center/cover no-repeat;flex:0 0 auto}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.82),rgba(15,23,42,.45))}
+.head-inner{position:relative;padding:8px 20px;max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{height:24px;width:auto;display:block}
+h1{margin:0;font-size:clamp(17px,2.4vw,22px);font-weight:700;line-height:1.2}
+header p{margin:2px 0 0;max-width:740px;font-size:12.5px;opacity:.95;line-height:1.35}
+.credit{font-size:12px;color:#e5e7eb;text-align:right;white-space:nowrap;opacity:.9}
+.credit a{color:#fff;font-weight:600;text-decoration:none}
+.credit a:hover{text-decoration:underline}
+
+main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1.1fr .9fr;gap:16px;padding:16px;max-width:1400px;width:100%;margin:0 auto}
+.pane{overflow-y:auto;min-height:0;padding-right:4px;display:flex;flex-direction:column;gap:14px;height:calc(100vh - var(--hh,70px) - 32px);min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
+.card h2{margin:0 0 8px;font-size:16px}
+.card h2 small{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+.pane-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 -4px}
+
+canvas{display:block;width:100%;border-radius:8px;background:#fff;border:1px solid var(--line)}
+#chart{aspect-ratio:5/4;touch-action:none;cursor:crosshair}
+#costChart{aspect-ratio:16/9}
+
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.row label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.field{display:flex;flex-direction:column;gap:2px;flex:1 1 150px;min-width:130px}
+.field .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.field .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--brand)}
+button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer;transition:.12s}
+button:hover{border-color:var(--brand);color:var(--brand)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.primary:hover{background:var(--brand2);color:#fff}
+button.warn{background:var(--accent);border-color:var(--accent);color:#fff}
+button.on{background:#dbeafe;border-color:var(--brand);color:var(--brand2);font-weight:600}
+.patterns{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.patterns button{padding:7px 6px;font-size:13px}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:4px}
+
+.equation{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(15px,2.4vw,19px);font-weight:700;color:var(--brand);padding:6px 2px;word-break:break-word}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kv .k{font-size:12px;color:var(--muted)}
+.kv .v{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.kv .v.big{font-size:20px}
+.good{color:#059669}.badc{color:#dc2626}.amberc{color:#b45309}
+#summary{font-size:13.5px;line-height:1.55;margin-top:10px;padding:10px 12px;border-radius:8px;background:#f8fafc;border:1px solid var(--line)}
+#summary b{font-variant-numeric:tabular-nums}
+#status{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+#status.ok{background:#ecfdf5;color:#065f46}
+#status.err{background:#fef2f2;color:#991b1b}
+#costBox{font-size:14px;padding:10px 12px;border-radius:8px;margin-top:10px;background:#f8fafc;border:1px solid var(--line)}
+#costBox.fail{background:#fef2f2;border-color:#fecaca}
+#costBox.okc{background:#ecfdf5;border-color:#a7f3d0}
+#costBox .total{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:24px;font-weight:800}
+table.mini{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+table.mini th,table.mini td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+table.mini th:first-child,table.mini td:first-child{text-align:left}
+table.mini th{color:var(--muted);font-weight:600;font-size:12px}
+.scroll-x{overflow-x:auto}
+.card ol,.card ul{margin:6px 0 0;padding-left:20px;font-size:13.5px}
+.card code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12.5px}
+
+@media (max-width:860px){
+  main{display:block;padding:12px}
+  .pane{height:auto;overflow:visible;padding:0}
+  .pane + .pane{margin-top:14px}
+  .head-inner{padding:8px 14px;flex-direction:column;align-items:flex-start;gap:4px}
+  .credit{text-align:left;white-space:normal;font-size:11.5px}
+}
+
+.bar{display:flex;height:22px;border-radius:6px;overflow:hidden;background:#f1f5f9;border:1px solid var(--line);margin-top:8px}
+.bar span{display:block;height:100%}
+.legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.kv.out{border-left:4px solid var(--c,#999)}
+.pair3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pair4{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+select{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+#tip{font-size:13.5px;line-height:1.55;padding:10px 12px;border-radius:8px;background:#fffbeb;border:1px solid #fde68a}
+tr.minr td{background:#dbeafe}
+tr.minc td{background:#d1fae5}
+tr.minr.minc td{background:linear-gradient(90deg,#dbeafe,#d1fae5)}
+.tag{display:inline-block;font-size:10.5px;border-radius:4px;padding:0 4px;margin-left:3px;color:#fff;vertical-align:middle}
+.tag.r{background:#2563eb}.tag.c{background:#059669}
+button.sm{padding:3px 8px;font-size:12px}
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="head-inner">
+    <div>
+      <div class="brand">
+        <img src="https://rathachai.github.io/assets/logo.svg" alt="Logo">
+        <h1>LM504 · The Cost of Wrong Predictions</h1>
+      </div>
+      <p>The model with the lowest error is not always the best decision-maker. Simulate a fleet of 200 machines, set a repair threshold, and compare prediction <i>error</i> with the <i>money</i> it really costs.</p>
+    </div>
+    <div class="credit">Powered by: Sonnet &nbsp;|&nbsp; AI Whisperer: <a href="https://rathachai.github.io" target="_blank" rel="noopener">rathachai.github.io</a></div>
+  </div>
+</header>
+
+<main>
+  <section class="pane">
+    <p class="pane-title">① The fleet &amp; the model</p>
+
+    <div class="card">
+      <h2>Predicted vs. actual RUL <small>one dot = one machine</small></h2>
+      <canvas id="chart" aria-label="Scatter chart predicted versus actual RUL"></canvas>
+      <div class="legend">
+        <span><i class="dot" style="background:#d97706"></i>repaired early (wasted life)</span>
+        <span><i class="dot" style="background:#059669"></i>repaired &amp; needed</span>
+        <span><i class="dot" style="background:#dc2626"></i>missed breakdown</span>
+        <span><i class="dot" style="background:#64748b"></i>correctly left running</span>
+      </div>
+      <div class="legend">
+        <span><i style="border-color:#6b7280;border-top-style:dashed"></i>perfect prediction (y = x)</span>
+        <span><i style="border-color:#2563eb;border-top-style:dashed"></i>threshold H</span>
+        <span><i style="border-color:#dc2626;border-top-style:dashed"></i>next inspection D</span>
+      </div>
+      <p class="hint">Rule: <b>repair now if predicted RUL ≤ H</b> (dots below the blue line). A machine that is not repaired breaks down if its actual RUL is shorter than <b>D</b> (dots left of the red line).</p>
+    </div>
+
+    <div class="card">
+      <h2>Spray more machines</h2>
+      <div class="row" style="margin-top:0">
+        <div class="field">
+          <div class="lab"><span>spray size (px)</span><b id="radVal">30</b></div>
+          <input type="range" id="radSlider" min="5" max="80" value="30">
+        </div>
+        <div class="field">
+          <div class="lab"><span>density (machines / tick)</span><b id="denVal">3</b></div>
+          <input type="range" id="denSlider" min="1" max="10" value="3">
+        </div>
+      </div>
+      <div class="row">
+        <button class="primary" id="regen">🎲 Regenerate fleet</button>
+        <button id="clearBtn">🗑 Clear</button>
+        <span class="hint" style="margin:0">Click or drag on the chart: the pointer position becomes the machine's actual (x) and predicted (y) RUL.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Prediction quality <small>p = r·(1 + bias) + σ·noise</small></h2>
+      <div class="row" style="margin-top:0">
+        <div class="field">
+          <div class="lab"><span>noise σ (h)</span><b id="sigVal">20</b></div>
+          <input type="range" id="sigSlider" min="0" max="80" step="1" value="20">
+        </div>
+        <div class="field">
+          <div class="lab"><span>bias (%) <small>+ optimistic</small></span><b id="biasVal">0</b></div>
+          <input type="range" id="biasSlider" min="-30" max="30" step="1" value="0">
+        </div>
+      </div>
+      <div class="row">
+        <label>Actual-RUL distribution
+          <select id="dist">
+            <option value="uni">uniform 20–400 h</option>
+            <option value="short">mostly short-lived</option>
+            <option value="long">mostly long-lived</option>
+            <option value="bi">two groups (worn / new)</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint">Positive bias means the model believes machines have more life than they do (dangerous). Sprayed machines keep the exact position you gave them.</p>
+    </div>
+
+    <div class="card">
+      <h2>Decision &amp; costs</h2>
+      <div class="row" style="margin-top:0">
+        <div class="field">
+          <div class="lab"><span>threshold H (h)</span><b id="hVal">60</b></div>
+          <input type="range" id="hSlider" min="0" max="300" step="1" value="60">
+        </div>
+        <div class="field">
+          <div class="lab"><span>inspection interval D (h)</span><b id="dVal">50</b></div>
+          <input type="range" id="dSlider" min="10" max="150" step="1" value="50">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>preventive repair Cp</span><b id="cpVal">1000</b></div>
+          <input type="range" id="cpSlider" min="200" max="3000" step="100" value="1000">
+        </div>
+        <div class="field">
+          <div class="lab"><span>breakdown Cf</span><b id="cfVal">8000</b></div>
+          <input type="range" id="cfSlider" min="1000" max="20000" step="500" value="8000">
+        </div>
+        <div class="field">
+          <div class="lab"><span>wasted life Cw (per h)</span><b id="cwVal">5</b></div>
+          <input type="range" id="cwSlider" min="0" max="30" step="1" value="5">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pane">
+    <p class="pane-title">② Error vs. cost</p>
+
+    <div class="card">
+      <h2>Prediction-quality metrics <small>whole fleet: <span id="nFleet">0</span> machines</small></h2>
+      <div class="pair3">
+        <div class="kv"><div class="k">MAE (h)</div><div class="v" id="mMae">–</div></div>
+        <div class="kv"><div class="k">RMSE (h)</div><div class="v" id="mRmse">–</div></div>
+        <div class="kv"><div class="k">MAPE</div><div class="v" id="mMape">–</div></div>
+        <div class="kv"><div class="k">MSE (h²)</div><div class="v" id="mMse">–</div></div>
+        <div class="kv"><div class="k">R²</div><div class="v" id="mR2">–</div></div>
+        <div class="kv"><div class="k">bias (mean p − r)</div><div class="v" id="mBias">–</div></div>
+      </div>
+      <p class="hint">These numbers treat an over-estimate and an under-estimate of the same size as equally bad. The costs below do not.</p>
+    </div>
+
+    <div class="card">
+      <h2>Cost of the decisions</h2>
+      <div id="costBox"></div>
+      <div class="pair4" style="margin-top:10px">
+        <div class="kv out" style="--c:#d97706"><div class="k">repaired early</div><div class="v" id="nEarly">0</div></div>
+        <div class="kv out" style="--c:#059669"><div class="k">repaired &amp; needed</div><div class="v" id="nNeeded">0</div></div>
+        <div class="kv out" style="--c:#dc2626"><div class="k">missed breakdowns</div><div class="v" id="nMiss">0</div></div>
+        <div class="kv out" style="--c:#64748b"><div class="k">correctly running</div><div class="v" id="nOk">0</div></div>
+      </div>
+      <div class="bar" id="bar"></div>
+      <div class="legend">
+        <span><i class="dot" style="background:#2563eb"></i>preventive <b id="cPrev">0</b></span>
+        <span><i class="dot" style="background:#f59e0b"></i>wasted life <b id="cWaste">0</b></span>
+        <span><i class="dot" style="background:#dc2626"></i>breakdowns <b id="cFail">0</b></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Total cost vs. threshold H</h2>
+      <canvas id="costChart" aria-label="Cost versus threshold"></canvas>
+      <div class="legend">
+        <span><span style="color:#d97706">◆</span> current H</span>
+        <span><span style="color:#059669">●</span> cost-minimising H</span>
+        <span><span style="color:#7c3aed">▲</span> H if both mistakes cost the same</span>
+      </div>
+      <div id="symNote" class="hint"></div>
+    </div>
+
+    <div class="card">
+      <h2>💡 Safety margin</h2>
+      <div id="tip"></div>
+    </div>
+
+    <div class="card">
+      <h2>Model comparison <small>same fleet, different models</small></h2>
+      <div class="row" style="margin-top:0">
+        <button class="primary" id="saveBtn">💾 Save this scenario</button>
+        <button id="demoBtn">✨ Demo: low error vs. low cost</button>
+        <button id="tblClear">Clear table</button>
+      </div>
+      <div class="scroll-x" style="margin-top:8px"><table class="mini" id="cmp">
+        <thead><tr><th>#</th><th>σ</th><th>bias</th><th>H</th><th>RMSE</th><th>MAE</th><th>Total cost</th><th>Break-<br>downs</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p class="hint"><span class="tag r">lowest RMSE</span> and <span class="tag c">lowest cost</span> are marked separately. When a breakdown is far more expensive than a repair, they are often different rows.</p>
+    </div>
+
+    <div class="card">
+      <h2>How it works</h2>
+      <ol>
+        <li>Each machine has a hidden actual RUL <code>r</code> (hours to failure). The model predicts <code>p = r·(1+bias) + σ·noise</code>.</li>
+        <li>Rule: repair now if <code>p ≤ H</code>. Otherwise the machine runs until the next inspection <code>D</code> hours later and breaks down if <code>r &lt; D</code>.</li>
+        <li>Repair costs <code>Cp + Cw·r</code> (the unused life <code>r</code> is thrown away). A breakdown costs <code>Cf</code>. Correctly leaving a healthy machine running costs nothing.</li>
+        <li>Error metrics (MAE, RMSE...) ignore which direction the error goes. Costs do not: when <code>Cf ≫ Cp</code>, under-estimating life (pessimism) is cheap and over-estimating it is expensive.</li>
+        <li>Moving <code>H</code> is the same as adding a safety margin. A pessimistic bias acts the same way, which is why a model with a larger error can still make cheaper decisions.</li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+  const money = v => (v < 0 ? "-$" : "$") + Math.round(Math.abs(v)).toLocaleString("en-US");
+  const f1 = v => isFinite(v) ? v.toFixed(1) : "n/a";
+  const XMAX = 400, YMAX = 500, NF = 200, MAXM = 2000, HMAX = 300;
+  const COL = { early: "#d97706", needed: "#059669", miss: "#dc2626", ok: "#64748b" };
+  const S = { sigma: 20, bias: 0, H: 60, D: 50, cp: 1000, cf: 8000, cw: 5, dist: "uni", fleet: [], saved: [] };
+
+  function drawR(d) {
+    const u = Math.random();
+    if (d === "short") return 20 + 380 * u * u;
+    if (d === "long") return 20 + 380 * Math.sqrt(u);
+    if (d === "bi") return clamp(Math.random() < 0.5 ? 20 + 90 * Math.abs(gauss()) * 0.9 + 10 : 260 + 70 * gauss(), 20, 400);
+    return 20 + 380 * u;
+  }
+  function regen() { S.fleet = Array.from({ length: NF }, () => ({ r: drawR(S.dist), z: gauss(), fixed: false })); }
+  const pred = m => m.fixed ? m.p : clamp(m.r * (1 + S.bias / 100) + S.sigma * m.z, 0, YMAX);
+
+  function outcome(r, p, H, D) {
+    if (p <= H) return r < D ? "needed" : "early";
+    return r < D ? "miss" : "ok";
+  }
+  function evalFleet(H, cfg) {
+    const c = cfg || S, res = { n: { early: 0, needed: 0, miss: 0, ok: 0 }, prev: 0, waste: 0, fail: 0, total: 0 };
+    for (const m of S.fleet) {
+      const o = outcome(m.r, m._p, H, S.D); res.n[o]++;
+      if (o === "early" || o === "needed") { res.prev += c.cp; res.waste += c.cw * m.r; }
+      else if (o === "miss") res.fail += c.cf;
+    }
+    res.total = res.prev + res.waste + res.fail; return res;
+  }
+  function wrongCount(H) { let w = 0; for (const m of S.fleet) { const o = outcome(m.r, m._p, H, S.D); if (o === "early" || o === "miss") w++; } return w; }
+
+  function metrics() {
+    const n = S.fleet.length; if (!n) return null;
+    let se = 0, ae = 0, pe = 0, be = 0, mr = 0; S.fleet.forEach(m => mr += m.r); mr /= n;
+    let sst = 0; S.fleet.forEach(m => { const e = m._p - m.r; se += e * e; ae += Math.abs(e); pe += Math.abs(e) / m.r; be += e; sst += (m.r - mr) ** 2; });
+    const mse = se / n; return { mse, rmse: Math.sqrt(mse), mae: ae / n, mape: 100 * pe / n, bias: be / n, r2: sst > 0 ? 1 - se / sst : NaN };
+  }
+  function curve() {
+    const costs = [], sym = [];
+    for (let H = 0; H <= HMAX; H++) { costs.push(evalFleet(H).total); sym.push(wrongCount(H)); }
+    const argmin = a => { let b = 0; a.forEach((v, i) => { if (v < a[b]) b = i; }); return b; };
+    return { costs, best: argmin(costs), sym: argmin(sym) };
+  }
+
+  // ---------- canvas ----------
+  const cv = $("chart"), cx = cv.getContext("2d"), cc = $("costChart"), ccx = cc.getContext("2d");
+  let W = 0, Hh = 0, CW = 0, CH = 0, hover = null;
+  const P = { l: 40, r: 10, t: 10, b: 28 };
+  const sx = v => P.l + v / XMAX * (W - P.l - P.r), sy = v => Hh - P.b - v / YMAX * (Hh - P.t - P.b);
+  const ix = px => (px - P.l) / (W - P.l - P.r) * XMAX, iy = py => (Hh - P.b - py) / (Hh - P.t - P.b) * YMAX;
+  function fit(c, ctx) { const d = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight; c.width = Math.round(w * d); c.height = Math.round(h * d); ctx.setTransform(d, 0, 0, d, 0, 0); return [w, h]; }
+  function resize() { [W, Hh] = fit(cv, cx); [CW, CH] = fit(cc, ccx); draw(); drawCost(); }
+
+  function draw() {
+    const c = cx; c.clearRect(0, 0, W, Hh);
+    c.font = "11px system-ui, sans-serif"; c.textBaseline = "middle"; c.lineWidth = 1;
+    // zones
+    c.fillStyle = "rgba(37,99,235,.07)"; c.fillRect(P.l, sy(S.H), W - P.l - P.r, sy(0) - sy(S.H));
+    c.fillStyle = "rgba(220,38,38,.07)"; c.fillRect(sx(0), P.t, sx(S.D) - sx(0), Hh - P.t - P.b);
+    // grid
+    c.strokeStyle = "#eef0f4"; c.fillStyle = "#6b7280"; c.textAlign = "right";
+    for (let v = 0; v <= YMAX; v += 100) { c.beginPath(); c.moveTo(P.l, sy(v)); c.lineTo(W - P.r, sy(v)); c.stroke(); c.fillText(v, P.l - 5, sy(v)); }
+    c.textAlign = "center"; for (let v = 0; v <= XMAX; v += 100) { c.beginPath(); c.moveTo(sx(v), P.t); c.lineTo(sx(v), Hh - P.b); c.stroke(); c.fillText(v, sx(v), Hh - P.b + 12); }
+    c.strokeStyle = "#9ca3af"; c.strokeRect(P.l, P.t, W - P.l - P.r, Hh - P.t - P.b);
+    c.fillStyle = "#374151"; c.textAlign = "right"; c.fillText("actual RUL r (h)", W - P.r - 4, Hh - P.b - 9); c.textAlign = "left"; c.fillText("predicted RUL p (h)", P.l + 5, P.t + 8);
+    c.save(); c.beginPath(); c.rect(P.l, P.t, W - P.l - P.r, Hh - P.t - P.b); c.clip();
+    // identity
+    c.setLineDash([6, 4]); c.strokeStyle = "#6b7280"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(sx(0), sy(0)); c.lineTo(sx(XMAX), sy(XMAX)); c.stroke();
+    // points
+    for (const m of S.fleet) { c.fillStyle = COL[outcome(m.r, m._p, S.H, S.D)]; c.globalAlpha = .78; c.beginPath(); c.arc(sx(m.r), sy(m._p), 3.2, 0, 7); c.fill(); }
+    c.globalAlpha = 1;
+    // lines
+    c.strokeStyle = "#2563eb"; c.lineWidth = 2; c.beginPath(); c.moveTo(P.l, sy(S.H)); c.lineTo(W - P.r, sy(S.H)); c.stroke();
+    c.strokeStyle = "#dc2626"; c.beginPath(); c.moveTo(sx(S.D), P.t); c.lineTo(sx(S.D), Hh - P.b); c.stroke(); c.setLineDash([]);
+    c.fillStyle = "#1d4ed8"; c.textAlign = "right"; c.fillText("repair zone (p ≤ H = " + S.H + ")", W - P.r - 5, sy(S.H) + 9);
+    c.fillStyle = "#b91c1c"; c.textAlign = "left"; c.fillText("r < D = " + S.D, sx(S.D) + 5, P.t + 22);
+    if (hover) { const rad = +$("radSlider").value; c.strokeStyle = "rgba(15,23,42,.55)"; c.lineWidth = 1.5; c.beginPath(); c.arc(hover.x, hover.y, rad, 0, 7); c.stroke(); }
+    c.restore();
+  }
+
+  function drawCost() {
+    const c = ccx, cu = curve(); c.clearRect(0, 0, CW, CH);
+    const Q = { l: 56, r: 12, t: 12, b: 26 }, hi = Math.max(...cu.costs, 1) * 1.08;
+    const X = h => Q.l + h / HMAX * (CW - Q.l - Q.r), Y = v => CH - Q.b - v / hi * (CH - Q.t - Q.b);
+    c.font = "11px system-ui, sans-serif"; c.textBaseline = "middle"; c.strokeStyle = "#eef0f4"; c.fillStyle = "#6b7280"; c.textAlign = "right"; c.lineWidth = 1;
+    for (let k = 0; k <= 4; k++) { const v = hi * k / 4; c.beginPath(); c.moveTo(Q.l, Y(v)); c.lineTo(CW - Q.r, Y(v)); c.stroke(); c.fillText(money(v), Q.l - 5, Y(v)); }
+    c.textAlign = "center"; for (let h = 0; h <= HMAX; h += 50) c.fillText(h, X(h), CH - Q.b + 12);
+    c.strokeStyle = "#9ca3af"; c.strokeRect(Q.l, Q.t, CW - Q.l - Q.r, CH - Q.t - Q.b);
+    c.fillStyle = "#374151"; c.textAlign = "right"; c.fillText("threshold H (h)", CW - Q.r - 3, CH - Q.b - 9);
+    c.strokeStyle = "#2563eb"; c.lineWidth = 2; c.beginPath(); cu.costs.forEach((v, h) => h ? c.lineTo(X(h), Y(v)) : c.moveTo(X(h), Y(v))); c.stroke();
+    // markers
+    const sym = cu.sym, bst = cu.best;
+    c.strokeStyle = "#7c3aed"; c.lineWidth = 1; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(X(sym), Q.t); c.lineTo(X(sym), CH - Q.b); c.stroke(); c.setLineDash([]);
+    c.fillStyle = "#7c3aed"; c.beginPath(); c.moveTo(X(sym), Y(cu.costs[sym]) - 8); c.lineTo(X(sym) + 7, Y(cu.costs[sym]) + 6); c.lineTo(X(sym) - 7, Y(cu.costs[sym]) + 6); c.closePath(); c.fill();
+    c.fillStyle = "#059669"; c.beginPath(); c.arc(X(bst), Y(cu.costs[bst]), 5.5, 0, 7); c.fill();
+    c.fillStyle = "#d97706"; const hx = X(S.H), hy = Y(cu.costs[S.H]); c.beginPath(); c.moveTo(hx, hy - 8); c.lineTo(hx + 6, hy); c.lineTo(hx, hy + 8); c.lineTo(hx - 6, hy); c.closePath(); c.fill();
+    c.fillStyle = "#065f46"; c.textAlign = bst > 200 ? "right" : "left"; c.fillText("best H = " + bst, X(bst) + (bst > 200 ? -9 : 9), Y(cu.costs[bst]) - 10);
+    return cu;
+  }
+
+  // ---------- refresh ----------
+  function barHtml(tot, parts) { return parts.map(([v, col]) => `<span style="width:${tot > 0 ? (100 * v / tot).toFixed(2) : 0}%;background:${col}"></span>`).join(""); }
+  function refresh() {
+    S.fleet.forEach(m => m._p = pred(m));
+    $("sigVal").textContent = S.sigma; $("biasVal").textContent = (S.bias > 0 ? "+" : "") + S.bias; $("hVal").textContent = S.H; $("dVal").textContent = S.D;
+    $("cpVal").textContent = S.cp; $("cfVal").textContent = S.cf; $("cwVal").textContent = S.cw;
+    const n = S.fleet.length; $("nFleet").textContent = n;
+    const M = metrics();
+    $("mMae").textContent = M ? f1(M.mae) : "–"; $("mRmse").textContent = M ? f1(M.rmse) : "–"; $("mMape").textContent = M ? f1(M.mape) + " %" : "–";
+    $("mMse").textContent = M ? Math.round(M.mse).toLocaleString("en-US") : "–"; $("mR2").textContent = M ? (isFinite(M.r2) ? M.r2.toFixed(3) : "n/a") : "–";
+    $("mBias").textContent = M ? (M.bias > 0 ? "+" : "") + f1(M.bias) + " h" : "–";
+    const R = evalFleet(S.H);
+    $("nEarly").textContent = R.n.early; $("nNeeded").textContent = R.n.needed; $("nMiss").textContent = R.n.miss; $("nOk").textContent = R.n.ok;
+    $("cPrev").textContent = money(R.prev); $("cWaste").textContent = money(R.waste); $("cFail").textContent = money(R.fail);
+    $("bar").innerHTML = barHtml(R.total, [[R.prev, "#2563eb"], [R.waste, "#f59e0b"], [R.fail, "#dc2626"]]);
+    $("costBox").className = R.fail > R.prev + R.waste ? "fail" : "okc";
+    $("costBox").innerHTML = n ? `Total cost <div class="total ${R.fail > R.prev + R.waste ? "badc" : "good"}">${money(R.total)}</div><span style="color:var(--muted);font-size:12.5px">${money(R.total / n)} per machine · ${R.n.miss} breakdown${R.n.miss === 1 ? "" : "s"} · ${R.n.early + R.n.needed} repairs</span>` : "No machines. Spray some on the chart.";
+    draw(); const cu = drawCost();
+    // sym note
+    if (n) {
+      const rb = evalFleet(cu.sym).total, extra = rb - cu.costs[cu.best];
+      $("symNote").innerHTML = `If a breakdown and an unnecessary repair were treated as equally bad, you would choose <b style="color:#7c3aed">H = ${cu.sym}</b> h. On the real costs that gives <b>${money(rb)}</b>, which is <b>${money(extra)}</b> ${extra > 0 ? "more" : "no more"} than the best H = ${cu.best} (<b>${money(cu.costs[cu.best])}</b>). Asymmetry matters.`;
+      const margin = cu.best - S.D, biasH = -S.bias / 100 * S.D;
+      $("tip").innerHTML = `The cost-optimal threshold is <b>H* = ${cu.best} h</b>, while the inspection interval is <b>D = ${S.D} h</b>: a safety margin of <b>${margin >= 0 ? "+" : ""}${margin} h</b>. With Cf/Cp = ${(S.cf / S.cp).toFixed(1)}, a missed breakdown hurts far more than an early repair, so it pays to repair when the prediction says "still a bit of life left".<br>`
+        + `Your model's bias of <b>${S.bias > 0 ? "+" : ""}${S.bias}%</b> shifts predictions by about <b>${(-biasH >= 0 ? "+" : "−") + Math.abs(biasH).toFixed(0)} h</b> near r = D ${S.bias < 0 ? "(pessimism = built-in safety margin)" : S.bias > 0 ? "(optimism removes the margin: breakdowns increase)" : "(unbiased)"}. A pessimistic model with H = D can behave like an unbiased one with a larger H.`;
+    } else { $("symNote").textContent = ""; $("tip").textContent = "Add machines to see the optimal threshold."; }
+  }
+
+  // ---------- saved scenarios ----------
+  function snapshot() { const M = metrics(), R = evalFleet(S.H); return M ? { sigma: S.sigma, bias: S.bias, H: S.H, rmse: M.rmse, mae: M.mae, cost: R.total, fails: R.n.miss } : null; }
+  function renderTable() {
+    const rows = S.saved, minR = Math.min(...rows.map(r => r.rmse)), minC = Math.min(...rows.map(r => r.cost));
+    $("cmp").tBodies[0].innerHTML = rows.length ? rows.map((r, i) => {
+      const a = r.rmse === minR && rows.length > 1, b = r.cost === minC && rows.length > 1;
+      return `<tr class="${a ? "minr " : ""}${b ? "minc" : ""}"><td>${i + 1}</td><td>${r.sigma}</td><td>${r.bias > 0 ? "+" : ""}${r.bias}%</td><td>${r.H}</td><td>${f1(r.rmse)}${a ? '<span class="tag r">min</span>' : ""}</td><td>${f1(r.mae)}</td><td>${money(r.cost)}${b ? '<span class="tag c">min</span>' : ""}</td><td>${r.fails}</td><td><button class="sm" data-i="${i}">✕</button></td></tr>`;
+    }).join("") : '<tr><td colspan="9" style="text-align:center;color:var(--muted)">No saved scenarios yet.</td></tr>';
+    $("cmp").tBodies[0].querySelectorAll("button").forEach(b => b.onclick = () => { S.saved.splice(+b.dataset.i, 1); renderTable(); });
+  }
+  $("saveBtn").onclick = () => { const s = snapshot(); if (s) { S.saved.push(s); renderTable(); } };
+  $("tblClear").onclick = () => { S.saved = []; renderTable(); };
+  $("demoBtn").onclick = () => {
+    const keep = { sigma: S.sigma, bias: S.bias, H: S.H, D: S.D, cp: S.cp, cf: S.cf, cw: S.cw }; S.cf = 15000;
+    Object.assign(S, { D: 50, cp: 1000, cf: 15000, cw: 5, H: 50 });
+    S.saved = [];
+    [[20, 0], [20, -5], [20, -10], [20, -15]].forEach(([s, b]) => { S.sigma = s; S.bias = b; refresh(); S.saved.push(snapshot()); });
+    Object.assign(S, keep); syncInputs(); refresh(); renderTable();
+  };
+
+  // ---------- controls ----------
+  function syncInputs() { [["sig", "sigma"], ["bias", "bias"], ["h", "H"], ["d", "D"], ["cp", "cp"], ["cf", "cf"], ["cw", "cw"]].forEach(([id, k]) => $(id + "Slider").value = S[k]); }
+  [["sig", "sigma"], ["bias", "bias"], ["h", "H"], ["d", "D"], ["cp", "cp"], ["cf", "cf"], ["cw", "cw"]].forEach(([id, k]) => $(id + "Slider").oninput = e => { S[k] = +e.target.value; refresh(); });
+  $("radSlider").oninput = e => { $("radVal").textContent = e.target.value; draw(); };
+  $("denSlider").oninput = e => $("denVal").textContent = e.target.value;
+  $("dist").onchange = e => { S.dist = e.target.value; regen(); refresh(); };
+  $("regen").onclick = () => { regen(); refresh(); };
+  $("clearBtn").onclick = () => { S.fleet = []; refresh(); };
+
+  // spray
+  let spraying = false, timer = null, last = null;
+  const pos = e => { const b = cv.getBoundingClientRect(); return { x: e.clientX - b.left, y: e.clientY - b.top }; };
+  function sprayAt(p) {
+    const rad = +$("radSlider").value, d = +$("denSlider").value;
+    for (let i = 0; i < d && S.fleet.length < MAXM; i++) {
+      const a = rand(0, 2 * Math.PI), q = rad * Math.sqrt(Math.random()), x = ix(p.x + q * Math.cos(a)), y = iy(p.y + q * Math.sin(a));
+      if (x >= 1 && x <= XMAX && y >= 0 && y <= YMAX) S.fleet.push({ r: x, p: y, z: 0, fixed: true });
+    }
+    refresh();
+  }
+  cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); spraying = true; last = pos(e); hover = last; sprayAt(last); timer = setInterval(() => last && sprayAt(last), 70); });
+  cv.addEventListener("pointermove", e => { hover = pos(e); if (spraying) last = hover; else draw(); });
+  const end = () => { spraying = false; clearInterval(timer); last = null; };
+  cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+  cv.addEventListener("pointerleave", () => { hover = null; if (!spraying) draw(); });
+
+  // init
+  const layout = () => document.documentElement.style.setProperty("--hh", $("top").offsetHeight + "px");
+  window.addEventListener("resize", () => { layout(); resize(); });
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv);
+  window.__lab = { S, refresh, regen, evalFleet, metrics, curve };
+  regen(); renderTable(); layout(); resize(); refresh();
+  window.addEventListener("load", () => { layout(); resize(); });
+})();
+</script>
+</body>
+</html>

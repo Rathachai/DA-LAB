@@ -16,6 +16,10 @@ A collection of browser-based, zero-install simulators that teach core data-anal
 | **LM301** | Train–test split | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm301.html) |
 | **LM302** | Train–test split with feature selection | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm302.html) |
 | **LM401** | Time series with sliding windows | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm401.html) |
+| **LM501** | Predictive maintenance: RUL from sensors, split by machine | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm501.html) |
+| **LM502** | Predictive maintenance: degradation curve & threshold | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm502.html) |
+| **LM503** | Predictive maintenance: early warning with residuals | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm503.html) |
+| **LM504** | Predictive maintenance: the cost of wrong predictions | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm504.html) |
 
 ### LM101 · Linear Regression Simulator
 Build intuition for how a straight line is fitted to data.
@@ -58,6 +62,32 @@ Turn a time series into a supervised-learning problem and forecast it with a lin
 - Compare train and test errors (MAE, RMSE, MAPE, MSE, R²) against a naive baseline. In a chronological split the test period is evaluated two ways: **chronological** (each prediction built from the model's earlier predictions) and **using actual data** (one step ahead).
 - Read the chart: train predictions (red, 1 px), test predictions using actual data (red, 2 px) and the chronological multi-step test forecast (red dashed, 2 px).
 
+### LM501 · Remaining Useful Life (RUL) from Sensors
+Predict how many hours a machine has left from seven sensor readings.
+- Explore a 120-row table (12 machines × 10 snapshots) with `id`, `machine`, sensors `s1`–`s7` and the target `y` = RUL; some sensors are strong, one is pure noise, one is U-shaped and one is exponential (use the per-column log option).
+- Select features, train with gradient descent or solve directly, and compare train and test MAE and MAPE across feature sets.
+- Learn the key lesson on splitting: **by machine** (correct) versus **by row** (leaky), with a leakage demo that runs 30 random splits of each mode.
+
+### LM502 · Degradation Curve & Maintenance Threshold
+Predict when a machine should be repaired from its declining health index.
+- Choose a degradation pattern (linear, accelerating, fast early wear, late-onset fault, step shocks), set the sensor noise, and generate a new machine.
+- Scrub **now** along the timeline: the model sees only the readings up to that moment.
+- Fit a trend line on a recent window (gradient descent or exact solution), extend it to the maintenance threshold θ and to failure, and read the predicted remaining useful life (RUL).
+- Track RUL predictions over time against the truth, and see whether a straight line is too optimistic or too pessimistic.
+- Set repair, breakdown and wasted-life costs, and explore how the choice of θ trades early repairs against breakdowns.
+
+### LM503 · Early Warning with a Sliding Window
+Detect the start of a fault from the residuals of a linear autoregressive model.
+- Train a sliding-window model (window up to 10) on the healthy start of a vibration signal; the residual (actual − predicted) becomes the health signal.
+- Raise an alarm when the residual exceeds k·σ for m consecutive points; review detection delay, false alarms and the k trade-off table.
+- Choose fault types (drift, level shift, growing variance, bearing oscillation) or inject your own anomaly by dragging the signal.
+
+### LM504 · The Cost of Wrong Predictions
+See why the model with the lowest error is not always the best decision-maker.
+- Simulate a 200-machine fleet with adjustable prediction noise and bias, and spray in extra machines.
+- Set a repair threshold, inspection interval and the costs of repairs, wasted life and breakdowns; see outcomes and the cost-versus-threshold curve.
+- Save scenarios to compare the lowest-RMSE model with the lowest-cost one.
+
 ---
 
 ## Using the Labs
@@ -76,7 +106,11 @@ learnings/
     ├── lm201.html
     ├── lm301.html
     ├── lm302.html
-    └── lm401.html
+    ├── lm401.html
+    ├── lm501.html
+    ├── lm502.html
+    ├── lm503.html
+    └── lm504.html
 ```
 
 ---
