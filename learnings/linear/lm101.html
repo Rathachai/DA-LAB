@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LM101 – Linear Regression Simulator</title>
+<link rel="icon" type="image/svg+xml" href="https://rathachai.github.io/assets/favicon.svg">
+<style>
+:root{
+  --bg:#f4f6fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#2563eb; --brand2:#1d4ed8; --accent:#f59e0b; --good:#059669; --bad:#dc2626;
+  --pt:#0f766e; --model:#2563eb; --opt:#9333ea; --res:#ef4444;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;min-height:100vh;font-size:15px;line-height:1.45}
+
+/* ---------- header ---------- */
+header{position:relative;color:#fff;background:#1e3a8a url("https://rathachai.github.io/images/banner.jpg") center center/cover no-repeat;flex:0 0 auto}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.82),rgba(15,23,42,.45))}
+.head-inner{position:relative;padding:8px 20px;max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{height:24px;width:auto;display:block}
+h1{margin:0;font-size:clamp(17px,2.4vw,22px);font-weight:700;line-height:1.2}
+header p{margin:2px 0 0;max-width:700px;font-size:12.5px;opacity:.95;line-height:1.35}
+.credit{font-size:12px;color:#e5e7eb;text-align:right;white-space:nowrap;opacity:.9}
+.credit a{color:#fff;font-weight:600;text-decoration:none}
+.credit a:hover{text-decoration:underline}
+
+/* ---------- layout ---------- */
+main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;max-width:1400px;width:100%;margin:0 auto}
+.pane{overflow-y:auto;min-height:0;padding-right:4px;display:flex;flex-direction:column;gap:14px;
+  height:calc(100vh - var(--hh,150px) - 32px)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card h2{margin:0 0 8px;font-size:16px}
+.card h2 small{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+.pane-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 -4px}
+
+canvas{display:block;width:100%;border-radius:8px;background:#fff;border:1px solid var(--line)}
+#chart{aspect-ratio:4/3;touch-action:none;cursor:crosshair}
+#lossChart{aspect-ratio:16/8}
+
+/* ---------- controls ---------- */
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.row label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.field{display:flex;flex-direction:column;gap:2px;flex:1 1 150px;min-width:130px}
+.field .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.field .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--brand)}
+button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer;transition:.12s}
+button:hover{border-color:var(--brand);color:var(--brand)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.primary:hover{background:var(--brand2);color:#fff}
+button.warn{background:var(--accent);border-color:var(--accent);color:#fff}
+button.active{background:#dbeafe;border-color:var(--brand);color:var(--brand2);font-weight:600}
+.seg{display:inline-flex;gap:6px}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:4px}
+
+/* ---------- right pane ---------- */
+.equation{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(22px,4vw,30px);font-weight:700;text-align:center;padding:10px 0;color:var(--model);font-variant-numeric:tabular-nums}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kv .k{font-size:12px;color:var(--muted)}
+.kv .v{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metric{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
+.metric .name{font-weight:700;font-size:13px}
+.metric .val{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:20px;font-weight:700;color:var(--brand2);font-variant-numeric:tabular-nums;margin:2px 0}
+.metric .desc{font-size:11.5px;color:var(--muted);line-height:1.3}
+#status{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+#status.ok{background:#ecfdf5;color:#065f46}
+#status.err{background:#fef2f2;color:#991b1b}
+.steps ol{margin:6px 0 0;padding-left:20px;font-size:13.5px}
+.steps code,.card code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12.5px}
+
+/* ---------- mobile ---------- */
+@media (max-width:860px){
+  main{display:block;padding:12px}
+  .pane{height:auto;overflow:visible;padding:0}
+  .pane + .pane{margin-top:14px}
+  .head-inner{padding:8px 14px;flex-direction:column;align-items:flex-start;gap:4px}
+  .credit{text-align:left;white-space:normal;font-size:11.5px}
+}
+</style>
+</head>
+<body>
+
+<header id="top">
+  <div class="head-inner">
+    <div>
+      <div class="brand">
+        <img src="https://rathachai.github.io/assets/logo.svg" alt="Logo">
+        <h1>LM101 · Linear Regression Simulator</h1>
+      </div>
+      <p>Place data points, drag a line through them, and watch gradient descent minimize the squared error.</p>
+    </div>
+    <div class="credit">Powered by: Sonnet &nbsp;|&nbsp; AI Whisperer: <a href="https://rathachai.github.io" target="_blank" rel="noopener">rathachai.github.io</a></div>
+  </div>
+</header>
+
+<main>
+  <!-- ================= LEFT: data + model ================= -->
+  <section class="pane" id="left">
+    <p class="pane-title">① Data &amp; model</p>
+
+    <div class="card">
+      <h2>Scatter plot <small>x → input, y → output</small></h2>
+      <canvas id="chart" aria-label="Scatter plot with regression line"></canvas>
+      <div class="legend">
+        <span><i style="border-color:var(--pt)"></i>data points</span>
+        <span><i style="border-color:var(--model)"></i>your model</span>
+        <span><i style="border-color:var(--res)"></i>residuals</span>
+        <span><i style="border-color:var(--opt);border-top-style:dashed"></i>best fit (formula)</span>
+      </div>
+      <div class="row">
+        <div class="seg" role="group" aria-label="Tool">
+          <button id="toolSpray" class="active">🖌 Spray points</button>
+          <button id="toolMove">✋ Move line</button>
+        </div>
+        <label><input type="checkbox" id="showRes" checked> residuals</label>
+        <label><input type="checkbox" id="showOpt"> best fit</label>
+      </div>
+      <p class="hint">Spray mode: click or hold &amp; drag on the chart. In any mode you can drag the two round handles (or the line itself) to reshape the model.</p>
+    </div>
+
+    <div class="card">
+      <h2>Model line <small>y = m·x + c</small></h2>
+      <div class="row" style="margin-top:0">
+        <div class="field">
+          <div class="lab"><span>slope m (coefficient)</span><b id="mVal">0</b></div>
+          <input type="range" id="mSlider" min="-4" max="6" step="0.01">
+        </div>
+        <div class="field">
+          <div class="lab"><span>intercept c</span><b id="cVal">0</b></div>
+          <input type="range" id="cSlider" min="-10" max="20" step="0.01">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Make data</h2>
+      <div class="row" style="margin-top:0">
+        <div class="field">
+          <div class="lab"><span>points to add</span><b id="nVal">25</b></div>
+          <input type="range" id="nSlider" min="3" max="200" step="1" value="25">
+        </div>
+        <div class="field">
+          <div class="lab"><span>noise (σ)</span><b id="noiseVal">1.5</b></div>
+          <input type="range" id="noiseSlider" min="0" max="5" step="0.1" value="1.5">
+        </div>
+      </div>
+      <div class="row">
+        <button class="primary" id="addRandom">＋ Add random linear data</button>
+        <button id="resetData">↺ Reset data points</button>
+        <button id="clearData">Clear all</button>
+        <span class="hint" style="margin:0">Points: <b id="count">0</b></span>
+      </div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 4px">
+      <h2 style="font-size:14px;margin-top:10px">Spray can</h2>
+      <div class="row" style="margin-top:0">
+        <div class="field">
+          <div class="lab"><span>spray size (px)</span><b id="radVal">30</b></div>
+          <input type="range" id="radSlider" min="5" max="90" step="1" value="30">
+        </div>
+        <div class="field">
+          <div class="lab"><span>density (points / burst)</span><b id="denVal">3</b></div>
+          <input type="range" id="denSlider" min="1" max="12" step="1" value="3">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>What is a residual?</h2>
+      <p class="hint" style="margin-top:0">A <b>residual</b> is the vertical gap between a data point <code>y</code> and the line's prediction <code>ŷ = m·x + c</code>. Regression looks for the line that makes these gaps as small as possible overall. The thin red lines show them.</p>
+    </div>
+  </section>
+
+  <!-- ================= RIGHT: training ================= -->
+  <section class="pane" id="right">
+    <p class="pane-title">② Train the model</p>
+
+    <div class="card">
+      <h2>Current model</h2>
+      <div class="equation" id="equation">y = 0.00x + 0.00</div>
+    </div>
+
+    <div class="card">
+      <h2>Gradient descent</h2>
+      <div class="row" style="margin-top:0">
+        <button id="stepBtn" class="primary">⏭ Step</button>
+        <button id="playBtn" class="warn">▶ Play</button>
+        <button id="randModel">🎲 Random model</button>
+        <button id="resetHist">↺ Reset loss</button>
+      </div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>learning rate (α)</span><b id="lrVal">0.010</b></div>
+          <input type="range" id="lrSlider" min="0.0005" max="0.04" step="0.0005" value="0.01">
+        </div>
+        <div class="field">
+          <div class="lab"><span>speed (steps / frame)</span><b id="spVal">1</b></div>
+          <input type="range" id="spSlider" min="1" max="30" step="1" value="1">
+        </div>
+      </div>
+      <div class="pair" style="margin-top:10px">
+        <div class="kv"><div class="k">iteration</div><div class="v" id="iter">0</div></div>
+        <div class="kv"><div class="k">∂MSE/∂m , ∂MSE/∂c</div><div class="v" id="grad" style="font-size:14px">–</div></div>
+      </div>
+      <div id="status">Add some data, then press <b>Step</b> or <b>Play</b>.</div>
+    </div>
+
+    <div class="card">
+      <h2>Error metrics <small>lower is better</small></h2>
+      <div class="metrics">
+        <div class="metric"><div class="name">MAE</div><div class="val" id="mae">–</div><div class="desc">Mean Absolute Error — average |y − ŷ|, same unit as y.</div></div>
+        <div class="metric"><div class="name">RMSE</div><div class="val" id="rmse">–</div><div class="desc">Root Mean Squared Error — √MSE, same unit as y; punishes big misses.</div></div>
+        <div class="metric"><div class="name">MAPE</div><div class="val" id="mape">–</div><div class="desc">Mean Absolute Percentage Error — average |y − ŷ| / |y|, in %.</div></div>
+        <div class="metric"><div class="name">MSE</div><div class="val" id="mse">–</div><div class="desc">Mean Squared Error — average (y − ŷ)². This is the loss we minimize.</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Loss curve <small>MSE vs. iteration</small></h2>
+      <canvas id="lossChart" aria-label="Loss curve"></canvas>
+      <div class="row">
+        <label><input type="checkbox" id="logLoss"> log scale</label>
+        <span class="hint" style="margin:0">Best-fit MSE (formula): <b id="optMse">–</b></span>
+      </div>
+    </div>
+
+    <div class="card steps">
+      <h2>How gradient descent works</h2>
+      <p class="hint" style="margin-top:0">Think of MSE as a bowl-shaped hill over (m, c). Each step walks a little downhill:</p>
+      <ol>
+        <li>Predict: <code>ŷ = m·x + c</code></li>
+        <li>Measure loss: <code>MSE = mean((y − ŷ)²)</code></li>
+        <li>Find the slope of the hill: <code>∂m = −2·mean(x·(y−ŷ))</code>, <code>∂c = −2·mean(y−ŷ)</code></li>
+        <li>Step downhill: <code>m ← m − α·∂m</code>, <code>c ← c − α·∂c</code></li>
+      </ol>
+      <p class="hint">Too small α → slow. Too large α → overshoots and <b>diverges</b>. Try it!</p>
+    </div>
+  </section>
+</main>
+
+
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+
+  // ---------- state ----------
+  const X_MIN = 0, X_MAX = 10, Y_MIN = 0, Y_MAX = 20, MAX_POINTS = 2000;
+  const HX1 = 1.5, HX2 = 8.5;               // x positions of the two drag handles
+  const state = { pts: [], m: 1, c: 3, lr: 0.01, iter: 0, history: [], playing: false, tool: "spray", diverged: false };
+
+  // ---------- helpers ----------
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  function fmt(v, d = 3) {
+    if (!isFinite(v)) return "∞";
+    const a = Math.abs(v);
+    if (a >= 1e6) return v.toExponential(2);
+    return v.toFixed(a >= 100 ? 1 : d);
+  }
+
+  // ---------- math ----------
+  function metrics(m = state.m, c = state.c) {
+    const n = state.pts.length;
+    if (!n) return null;
+    let ae = 0, se = 0, ape = 0, apeN = 0;
+    for (const p of state.pts) {
+      const e = p.y - (m * p.x + c);
+      ae += Math.abs(e); se += e * e;
+      if (Math.abs(p.y) > 1e-6) { ape += Math.abs(e / p.y); apeN++; }
+    }
+    return { mae: ae / n, mse: se / n, rmse: Math.sqrt(se / n), mape: apeN ? 100 * ape / apeN : NaN };
+  }
+  function gradient() {
+    const n = state.pts.length; let gm = 0, gc = 0;
+    for (const p of state.pts) { const e = p.y - (state.m * p.x + state.c); gm += -2 * p.x * e; gc += -2 * e; }
+    return { gm: gm / n, gc: gc / n };
+  }
+  function ols() {
+    const n = state.pts.length;
+    if (n < 2) return null;
+    let sx = 0, sy = 0, sxx = 0, sxy = 0;
+    for (const p of state.pts) { sx += p.x; sy += p.y; sxx += p.x * p.x; sxy += p.x * p.y; }
+    const den = n * sxx - sx * sx;
+    if (Math.abs(den) < 1e-9) return null;
+    const m = (n * sxy - sx * sy) / den;
+    return { m, c: (sy - m * sx) / n };
+  }
+
+  // ---------- canvas setup ----------
+  const chart = $("chart"), cx = chart.getContext("2d");
+  const lossC = $("lossChart"), lx = lossC.getContext("2d");
+  const PAD = { l: 40, r: 12, t: 10, b: 30 };
+  let W = 0, H = 0, LW = 0, LH = 0;
+
+  function fit(canvas, ctx) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return [w, h];
+  }
+  function resize() {
+    [W, H] = fit(chart, cx); [LW, LH] = fit(lossC, lx);
+    draw(); drawLoss();
+  }
+  const sx = x => PAD.l + (x - X_MIN) / (X_MAX - X_MIN) * (W - PAD.l - PAD.r);
+  const sy = y => H - PAD.b - (y - Y_MIN) / (Y_MAX - Y_MIN) * (H - PAD.t - PAD.b);
+  const ix = px => X_MIN + (px - PAD.l) / (W - PAD.l - PAD.r) * (X_MAX - X_MIN);
+  const iy = py => Y_MIN + (H - PAD.b - py) / (H - PAD.t - PAD.b) * (Y_MAX - Y_MIN);
+
+  // ---------- draw main chart ----------
+  let hover = null;   // {x,y} px, for spray cursor
+  function draw() {
+    cx.clearRect(0, 0, W, H);
+    cx.font = "11px system-ui, sans-serif"; cx.textBaseline = "middle";
+    // grid + ticks
+    cx.strokeStyle = "#eef0f4"; cx.fillStyle = "#6b7280"; cx.lineWidth = 1;
+    cx.textAlign = "right";
+    for (let y = Y_MIN; y <= Y_MAX; y += 4) { const py = sy(y); cx.beginPath(); cx.moveTo(PAD.l, py); cx.lineTo(W - PAD.r, py); cx.stroke(); cx.fillText(y, PAD.l - 6, py); }
+    cx.textAlign = "center";
+    for (let x = X_MIN; x <= X_MAX; x += 2) { const px = sx(x); cx.beginPath(); cx.moveTo(px, PAD.t); cx.lineTo(px, H - PAD.b); cx.stroke(); cx.fillText(x, px, H - PAD.b + 12); }
+    cx.fillText("x", W - PAD.r - 6, H - 7);
+    cx.save(); cx.translate(10, PAD.t + 6); cx.fillText("y", 0, 0); cx.restore();
+    cx.strokeStyle = "#9ca3af"; cx.strokeRect(PAD.l, PAD.t, W - PAD.l - PAD.r, H - PAD.t - PAD.b);
+
+    cx.save();
+    cx.beginPath(); cx.rect(PAD.l, PAD.t, W - PAD.l - PAD.r, H - PAD.t - PAD.b); cx.clip();
+
+    // best-fit
+    if ($("showOpt").checked) {
+      const o = ols();
+      if (o) { cx.strokeStyle = "#9333ea"; cx.setLineDash([6, 5]); cx.lineWidth = 2; line(o.m, o.c); cx.setLineDash([]); }
+    }
+    // residuals
+    if ($("showRes").checked) {
+      cx.strokeStyle = "rgba(239,68,68,.55)"; cx.lineWidth = 1;
+      cx.beginPath();
+      for (const p of state.pts) { const px = sx(p.x); cx.moveTo(px, sy(p.y)); cx.lineTo(px, sy(state.m * p.x + state.c)); }
+      cx.stroke();
+    }
+    // model
+    cx.strokeStyle = "#2563eb"; cx.lineWidth = 3; line(state.m, state.c);
+    // points
+    cx.fillStyle = "rgba(15,118,110,.85)"; cx.strokeStyle = "#fff"; cx.lineWidth = 1;
+    for (const p of state.pts) { cx.beginPath(); cx.arc(sx(p.x), sy(p.y), 3.6, 0, 7); cx.fill(); cx.stroke(); }
+    cx.restore();
+
+    // handles
+    for (const hx of [HX1, HX2]) {
+      const hy = clamp(state.m * hx + state.c, Y_MIN, Y_MAX);
+      cx.beginPath(); cx.arc(sx(hx), sy(hy), 9, 0, 7);
+      cx.fillStyle = "#fff"; cx.fill(); cx.lineWidth = 3; cx.strokeStyle = "#2563eb"; cx.stroke();
+    }
+    // spray cursor
+    if (state.tool === "spray" && hover) {
+      cx.beginPath(); cx.arc(hover.x, hover.y, +$("radSlider").value, 0, 7);
+      cx.strokeStyle = "rgba(245,158,11,.9)"; cx.setLineDash([4, 4]); cx.lineWidth = 1.5; cx.stroke(); cx.setLineDash([]);
+    }
+  }
+  function line(m, c) {
+    cx.beginPath(); cx.moveTo(sx(X_MIN), sy(m * X_MIN + c)); cx.lineTo(sx(X_MAX), sy(m * X_MAX + c)); cx.stroke();
+  }
+
+  // ---------- loss chart ----------
+  function drawLoss() {
+    lx.clearRect(0, 0, LW, LH);
+    const P = { l: 52, r: 10, t: 10, b: 24 };
+    const hist = state.history, log = $("logLoss").checked;
+    lx.font = "11px system-ui, sans-serif"; lx.fillStyle = "#6b7280"; lx.strokeStyle = "#9ca3af";
+    lx.strokeRect(P.l, P.t, LW - P.l - P.r, LH - P.t - P.b);
+    if (hist.length < 1 || !hist.every(isFinite)) {
+      lx.textAlign = "center"; lx.textBaseline = "middle";
+      lx.fillText(hist.length ? "diverged" : "no data yet", LW / 2, LH / 2); return;
+    }
+    const o = ols(), optMse = o ? metrics(o.m, o.c).mse : null;
+    const f = v => log ? Math.log10(Math.max(v, 1e-6)) : v;
+    let lo = Math.min(...hist.map(f)), hi = Math.max(...hist.map(f));
+    if (optMse != null) lo = Math.min(lo, f(optMse));
+    if (hi - lo < 1e-9) { hi += 1; lo -= log ? 1 : 0; }
+    if (!log) lo = Math.min(lo, 0);
+    const n = hist.length, span = Math.max(n - 1, 1);
+    const X = i => P.l + i / span * (LW - P.l - P.r);
+    const Y = v => LH - P.b - (f(v) - lo) / (hi - lo) * (LH - P.t - P.b);
+    // axis labels
+    lx.textAlign = "right"; lx.textBaseline = "middle";
+    const lab = v => log ? "10^" + v.toFixed(1) : fmt(v, 1);
+    lx.fillText(lab(hi), P.l - 5, P.t + 4); lx.fillText(lab(lo), P.l - 5, LH - P.b - 4);
+    lx.textAlign = "left"; lx.textBaseline = "top"; lx.fillText("0", P.l, LH - P.b + 6);
+    lx.textAlign = "right"; lx.fillText("iter " + (n - 1), LW - P.r, LH - P.b + 6);
+    // optimum
+    if (optMse != null) {
+      lx.strokeStyle = "#9333ea"; lx.setLineDash([5, 4]); lx.beginPath();
+      lx.moveTo(P.l, Y(optMse)); lx.lineTo(LW - P.r, Y(optMse)); lx.stroke(); lx.setLineDash([]);
+    }
+    // curve (downsampled)
+    const stride = Math.max(1, Math.floor(n / 600));
+    lx.strokeStyle = "#2563eb"; lx.lineWidth = 2; lx.beginPath();
+    for (let i = 0; i < n; i += stride) { i ? lx.lineTo(X(i), Y(hist[i])) : lx.moveTo(X(i), Y(hist[i])); }
+    lx.lineTo(X(n - 1), Y(hist[n - 1])); lx.stroke(); lx.lineWidth = 1;
+  }
+
+  // ---------- UI refresh ----------
+  function setStatus(msg, cls = "") { const s = $("status"); s.className = cls; s.innerHTML = msg; }
+  function refresh(pushHistory = false) {
+    const mt = metrics();
+    $("count").textContent = state.pts.length;
+    $("mSlider").value = clamp(state.m, -4, 6); $("cSlider").value = clamp(state.c, -10, 20);
+    $("mVal").textContent = fmt(state.m, 2); $("cVal").textContent = fmt(state.c, 2);
+    $("equation").textContent = `y = ${fmt(state.m, 2)}x ${state.c < 0 ? "−" : "+"} ${fmt(Math.abs(state.c), 2)}`;
+    $("iter").textContent = state.iter;
+    if (mt) {
+      $("mae").textContent = fmt(mt.mae); $("rmse").textContent = fmt(mt.rmse);
+      $("mse").textContent = fmt(mt.mse); $("mape").textContent = isFinite(mt.mape) ? fmt(mt.mape, 1) + " %" : "n/a";
+      const g = gradient(); $("grad").textContent = `${fmt(g.gm, 2)} , ${fmt(g.gc, 2)}`;
+      if (pushHistory) state.history.push(mt.mse);
+    } else {
+      ["mae", "rmse", "mse", "mape", "grad"].forEach(k => $(k).textContent = "–");
+    }
+    const o = ols();
+    $("optMse").textContent = o ? fmt(metrics(o.m, o.c).mse) : "–";
+    draw(); drawLoss();
+  }
+  // model/data changed by the user → restart loss history
+  function restartHistory() {
+    state.iter = 0; state.history = []; state.diverged = false;
+    const mt = metrics(); if (mt) state.history.push(mt.mse);
+  }
+  function modelChanged() { restartHistory(); refresh(); }
+
+  // ---------- training ----------
+  function step() {
+    if (state.pts.length < 2) { setStatus("Need at least 2 data points to train.", "err"); stop(); return false; }
+    if (!state.history.length) state.history.push(metrics().mse);
+    const g = gradient();
+    state.m -= state.lr * g.gm; state.c -= state.lr * g.gc; state.iter++;
+    const mse = metrics().mse;
+    if (!isFinite(mse) || mse > 1e12) {
+      state.diverged = true; state.history.push(mse); stop();
+      setStatus("💥 Diverged! The learning rate is too large — the steps overshoot the minimum. Press <b>Random model</b> and lower α.", "err");
+      return false;
+    }
+    state.history.push(mse);
+    if (Math.hypot(g.gm, g.gc) < 1e-4) {
+      stop(); setStatus("✅ Converged — the gradient is ~0, so we are at the bottom of the bowl.", "ok"); return false;
+    }
+    return true;
+  }
+  function frame() {
+    if (!state.playing) return;
+    const k = +$("spSlider").value;
+    let ok = true;
+    for (let i = 0; i < k && ok; i++) ok = step();
+    if (ok) setStatus(`Training… α = ${state.lr.toFixed(4)}, MSE = ${fmt(state.history[state.history.length - 1])}`);
+    refresh();
+    if (state.playing) requestAnimationFrame(frame);
+  }
+  function play() {
+    if (state.diverged) { restartHistory(); }
+    state.playing = true; $("playBtn").textContent = "⏸ Pause"; requestAnimationFrame(frame);
+  }
+  function stop() { state.playing = false; $("playBtn").textContent = "▶ Play"; }
+
+  // ---------- data ops ----------
+  function addRandom() {
+    const n = +$("nSlider").value, sigma = +$("noiseSlider").value;
+    const tm = rand(0.4, 1.8), tc = rand(1, 6);
+    for (let i = 0; i < n && state.pts.length < MAX_POINTS; i++) {
+      const x = rand(0.3, 9.7);
+      state.pts.push({ x, y: clamp(tm * x + tc + gauss() * sigma, Y_MIN + 0.1, Y_MAX - 0.1) });
+    }
+    modelChanged();
+  }
+  function sprayAt(px, py) {
+    const r = +$("radSlider").value, d = +$("denSlider").value;
+    for (let i = 0; i < d && state.pts.length < MAX_POINTS; i++) {
+      const a = rand(0, 2 * Math.PI), rr = r * Math.sqrt(Math.random());
+      const x = ix(px + rr * Math.cos(a)), y = iy(py + rr * Math.sin(a));
+      if (x >= X_MIN && x <= X_MAX && y >= Y_MIN && y <= Y_MAX) state.pts.push({ x, y });
+    }
+  }
+  function randomModel() {
+    state.m = +rand(-1.5, 3.5).toFixed(2); state.c = +rand(0, 14).toFixed(2);
+    modelChanged();
+    setStatus("New random model. Press <b>Step</b> or <b>Play</b> to improve it.");
+  }
+
+  // ---------- pointer interaction on chart ----------
+  let drag = null, sprayTimer = null, lastPt = null;
+  function pos(e) { const r = chart.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  function hitTest(p) {
+    for (const [k, hx] of [["h1", HX1], ["h2", HX2]]) {
+      const hy = clamp(state.m * hx + state.c, Y_MIN, Y_MAX);
+      if (Math.hypot(p.x - sx(hx), p.y - sy(hy)) < 16) return k;
+    }
+    // distance to line (vertical gap in px is fine for display purposes)
+    const x = ix(p.x);
+    if (x >= X_MIN && x <= X_MAX && Math.abs(p.y - sy(state.m * x + state.c)) < 8) return "body";
+    return null;
+  }
+  chart.addEventListener("pointerdown", e => {
+    chart.setPointerCapture(e.pointerId);
+    const p = pos(e), hit = hitTest(p);
+    if (hit) {
+      stop();
+      drag = { kind: hit, y0: iy(p.y), c0: state.c };
+      if (hit !== "body") drag.other = hit === "h1" ? HX2 : HX1, drag.otherY = state.m * drag.other + state.c;
+    } else if (state.tool === "spray") {
+      lastPt = p; sprayAt(p.x, p.y); modelChangedLight();
+      sprayTimer = setInterval(() => { if (lastPt) { sprayAt(lastPt.x, lastPt.y); modelChangedLight(); } }, 60);
+    }
+  });
+  chart.addEventListener("pointermove", e => {
+    const p = pos(e); hover = p;
+    if (drag) {
+      if (drag.kind === "body") {
+        state.c = drag.c0 + (iy(p.y) - drag.y0);
+      } else {
+        const hx = drag.kind === "h1" ? HX1 : HX2, hy = clamp(iy(p.y), Y_MIN, Y_MAX);
+        state.m = (hy - drag.otherY) / (hx - drag.other);
+        state.c = hy - state.m * hx;
+      }
+      state.m = +state.m.toFixed(3); state.c = +state.c.toFixed(3);
+      modelChanged();
+    } else {
+      lastPt = p;
+      chart.style.cursor = hitTest(p) ? "grab" : (state.tool === "spray" ? "crosshair" : "default");
+      draw();
+    }
+  });
+  const endDrag = () => { drag = null; clearInterval(sprayTimer); sprayTimer = null; lastPt = null; };
+  chart.addEventListener("pointerup", endDrag);
+  chart.addEventListener("pointercancel", endDrag);
+  chart.addEventListener("pointerleave", () => { hover = null; if (!drag) draw(); });
+  function modelChangedLight() { restartHistory(); refresh(); }
+
+  // ---------- wire up controls ----------
+  function setTool(t) {
+    state.tool = t;
+    $("toolSpray").classList.toggle("active", t === "spray");
+    $("toolMove").classList.toggle("active", t === "move");
+    chart.style.cursor = t === "spray" ? "crosshair" : "default"; draw();
+  }
+  $("toolSpray").onclick = () => setTool("spray");
+  $("toolMove").onclick = () => setTool("move");
+  $("showRes").onchange = $("showOpt").onchange = draw;
+  $("logLoss").onchange = drawLoss;
+  $("mSlider").oninput = e => { state.m = +e.target.value; stop(); modelChanged(); };
+  $("cSlider").oninput = e => { state.c = +e.target.value; stop(); modelChanged(); };
+  $("nSlider").oninput = e => $("nVal").textContent = e.target.value;
+  $("noiseSlider").oninput = e => $("noiseVal").textContent = (+e.target.value).toFixed(1);
+  $("radSlider").oninput = e => $("radVal").textContent = e.target.value;
+  $("denSlider").oninput = e => $("denVal").textContent = e.target.value;
+  $("lrSlider").oninput = e => { state.lr = +e.target.value; $("lrVal").textContent = state.lr.toFixed(4).replace(/0$/, ""); };
+  $("spSlider").oninput = e => $("spVal").textContent = e.target.value;
+  $("addRandom").onclick = addRandom;
+  $("resetData").onclick = () => { stop(); state.pts = []; addRandom(); setStatus("Data points reset with a fresh random set."); };
+  $("clearData").onclick = () => { stop(); state.pts = []; modelChanged(); setStatus("Data cleared. Add points with the spray or random data."); };
+  $("randModel").onclick = () => { stop(); randomModel(); };
+  $("resetHist").onclick = () => { restartHistory(); refresh(); };
+  $("stepBtn").onclick = () => { stop(); if (step()) setStatus(`Step ${state.iter}: moved downhill. MSE = ${fmt(state.history[state.history.length - 1])}`); refresh(); };
+  $("playBtn").onclick = () => state.playing ? (stop(), setStatus("Paused.")) : play();
+
+  // ---------- layout: measure header/footer for pane height ----------
+  function layout() {
+    document.documentElement.style.setProperty("--hh", $("top").offsetHeight + "px");
+  }
+  window.addEventListener("resize", () => { layout(); resize(); });
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(chart);
+
+  // ---------- init ----------
+  layout();
+  $("lrSlider").dispatchEvent(new Event("input"));
+  addRandom();
+  randomModel();
+  resize();
+  window.addEventListener("load", () => { layout(); resize(); });
+})();
+</script>
+</body>
+</html>

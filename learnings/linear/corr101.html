@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CORR101 – Pearson Correlation Demo</title>
+<link rel="icon" type="image/svg+xml" href="https://rathachai.github.io/assets/favicon.svg">
+<style>
+:root{
+  --bg:#f4f6fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#2563eb; --brand2:#1d4ed8; --accent:#f59e0b; --pos:#0f766e; --neg:#dc2626;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;min-height:100vh;font-size:15px;line-height:1.45}
+
+header{position:relative;color:#fff;background:#1e3a8a url("https://rathachai.github.io/images/banner.jpg") center center/cover no-repeat;flex:0 0 auto}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.82),rgba(15,23,42,.45))}
+.head-inner{position:relative;padding:8px 20px;max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{height:24px;width:auto;display:block}
+h1{margin:0;font-size:clamp(17px,2.4vw,22px);font-weight:700;line-height:1.2}
+header p{margin:2px 0 0;max-width:700px;font-size:12.5px;opacity:.95;line-height:1.35}
+.credit{font-size:12px;color:#e5e7eb;text-align:right;white-space:nowrap;opacity:.9}
+.credit a{color:#fff;font-weight:600;text-decoration:none}
+.credit a:hover{text-decoration:underline}
+
+main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;max-width:1400px;width:100%;margin:0 auto}
+.pane{overflow-y:auto;min-height:0;padding-right:4px;display:flex;flex-direction:column;gap:14px;height:calc(100vh - var(--hh,70px) - 32px)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card h2{margin:0 0 8px;font-size:16px}
+.card h2 small{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+.pane-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 -4px}
+
+canvas{display:block;width:100%;border-radius:8px;background:#fff;border:1px solid var(--line)}
+#chart{aspect-ratio:4/3;touch-action:none;cursor:crosshair}
+
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.row label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.field{display:flex;flex-direction:column;gap:2px;flex:1 1 150px;min-width:130px}
+.field .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.field .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--brand)}
+button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer;transition:.12s}
+button:hover{border-color:var(--brand);color:var(--brand)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.primary:hover{background:var(--brand2);color:#fff}
+button.active{background:#dbeafe;border-color:var(--brand);color:var(--brand2);font-weight:600}
+.patterns{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px}
+.patterns button{padding:7px 6px;font-size:13px}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:baseline;background:var(--c)}
+
+.big{text-align:center;padding:6px 0 2px}
+.big .lbl{font-size:13px;color:var(--muted)}
+.big .r{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:clamp(38px,7vw,54px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.big .interp{font-size:15px;font-weight:600;margin-top:2px}
+.meter{position:relative;height:14px;border-radius:7px;margin:14px 6px 4px;background:linear-gradient(90deg,#dc2626,#f3f4f6 50%,#0f766e)}
+.meter i{position:absolute;top:-4px;width:6px;height:22px;border-radius:3px;background:#111827;transform:translateX(-50%);transition:left .15s}
+.ticks{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin:0 2px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kv .k{font-size:12px;color:var(--muted)}
+.kv .v{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+#note{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+.card code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12.5px}
+.card ol{margin:6px 0 0;padding-left:20px;font-size:13.5px}
+table.sc{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+table.sc td,table.sc th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left}
+
+@media (max-width:860px){
+  main{display:block;padding:12px}
+  .pane{height:auto;overflow:visible;padding:0}
+  .pane + .pane{margin-top:14px}
+  .head-inner{padding:8px 14px;flex-direction:column;align-items:flex-start;gap:4px}
+  .credit{text-align:left;white-space:normal;font-size:11.5px}
+}
+</style>
+</head>
+<body>
+
+<header id="top">
+  <div class="head-inner">
+    <div>
+      <div class="brand">
+        <img src="https://rathachai.github.io/assets/logo.svg" alt="Logo">
+        <h1>CORR101 · Pearson Correlation Demo</h1>
+      </div>
+      <p>Pick a data pattern or spray your own points, and see how the correlation coefficient r reacts.</p>
+    </div>
+    <div class="credit">Powered by: Sonnet &nbsp;|&nbsp; AI Whisperer: <a href="https://rathachai.github.io" target="_blank" rel="noopener">rathachai.github.io</a></div>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT -->
+  <section class="pane">
+    <p class="pane-title">① Data pattern</p>
+
+    <div class="card">
+      <h2>Scatter plot <small>x vs. y</small></h2>
+      <canvas id="chart" aria-label="Scatter plot"></canvas>
+      <div class="legend">
+        <span style="--c:#0f766e">data point</span>
+        <span style="--c:#2563eb">correlation line</span>
+      </div>
+      <p class="hint">Click or hold &amp; drag on the chart to spray your own points (this switches the pattern to “Custom”).</p>
+    </div>
+
+    <div class="card">
+      <h2>Choose a pattern</h2>
+      <div class="patterns" id="patterns"></div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>points</span><b id="nVal">80</b></div>
+          <input type="range" id="nSlider" min="10" max="300" step="5" value="80">
+        </div>
+        <div class="field">
+          <div class="lab"><span>noise / spread</span><b id="noiseVal">1.0</b></div>
+          <input type="range" id="noiseSlider" min="0" max="3" step="0.05" value="1">
+        </div>
+      </div>
+      <div class="row">
+        <button class="primary" id="regen">🎲 Regenerate</button>
+        <button id="clear">Clear all</button>
+      </div>
+      <p class="hint" id="patDesc"></p>
+    </div>
+
+    <div class="card">
+      <h2>Spray can</h2>
+      <div class="row" style="margin-top:0">
+        <div class="field">
+          <div class="lab"><span>spray size (px)</span><b id="radVal">30</b></div>
+          <input type="range" id="radSlider" min="5" max="90" step="1" value="30">
+        </div>
+        <div class="field">
+          <div class="lab"><span>density (points / burst)</span><b id="denVal">3</b></div>
+          <input type="range" id="denSlider" min="1" max="12" step="1" value="3">
+        </div>
+      </div>
+      <p class="hint">Try: spray a tight diagonal band (r→±1), a round blob (r≈0), then add one far-away outlier and watch r jump.</p>
+    </div>
+  </section>
+
+  <!-- RIGHT -->
+  <section class="pane">
+    <p class="pane-title">② Pearson correlation</p>
+
+    <div class="card">
+      <div class="big">
+        <div class="lbl">Pearson correlation coefficient</div>
+        <div class="r" id="r">–</div>
+        <div class="interp" id="interp">Add some points</div>
+      </div>
+      <div class="meter"><i id="marker" style="left:50%"></i></div>
+      <div class="ticks"><span>−1 perfect negative</span><span>0 none</span><span>+1 perfect positive</span></div>
+      <div id="note">Pattern: –</div>
+    </div>
+
+    <div class="card">
+      <h2>Numbers behind r</h2>
+      <div class="pair">
+        <div class="kv"><div class="k">n (points)</div><div class="v" id="sn">0</div></div>
+        <div class="kv"><div class="k">r² (shared variance)</div><div class="v" id="r2">–</div></div>
+        <div class="kv"><div class="k">mean x̄ , ȳ</div><div class="v" id="means" style="font-size:15px">–</div></div>
+        <div class="kv"><div class="k">std s<sub>x</sub> , s<sub>y</sub></div><div class="v" id="sds" style="font-size:15px">–</div></div>
+        <div class="kv"><div class="k">covariance cov(x,y)</div><div class="v" id="cov">–</div></div>
+        <div class="kv"><div class="k">slope of fit (r·s<sub>y</sub>/s<sub>x</sub>)</div><div class="v" id="slope">–</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>How r is calculated</h2>
+      <ol>
+        <li>Find the means <code>x̄</code> and <code>ȳ</code> (the center of the cloud).</li>
+        <li>For each point, multiply the distances from the means: <code>(x−x̄)(y−ȳ)</code>. Points above-right or below-left of the center give <b style="color:var(--pos)">positive</b> products; points above-left or below-right give <b style="color:var(--neg)">negative</b> ones.</li>
+        <li>Average them to get covariance, then divide by the spreads so the result has no units:</li>
+      </ol>
+      <p style="text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;margin:10px 0 4px"><code>r = Σ(x−x̄)(y−ȳ) / √[Σ(x−x̄)² · Σ(y−ȳ)²]</code></p>
+      <p class="hint">The blue line is the line that best follows the cloud. The closer the points hug it, the closer |r| is to 1; its tilt shows the sign of r.</p>
+    </div>
+
+    <div class="card">
+      <h2>Reading r</h2>
+      <table class="sc">
+        <tr><th>|r|</th><th>Usual wording</th></tr>
+        <tr><td>0.9 – 1.0</td><td>very strong</td></tr>
+        <tr><td>0.7 – 0.9</td><td>strong</td></tr>
+        <tr><td>0.4 – 0.7</td><td>moderate</td></tr>
+        <tr><td>0.2 – 0.4</td><td>weak</td></tr>
+        <tr><td>0 – 0.2</td><td>very weak / none</td></tr>
+      </table>
+      <p class="hint"><b>Warnings:</b> r only measures <i>linear</i> relationships — a perfect circle, U-shape or sine wave can have r≈0 yet clearly be related. A single outlier can change r a lot. And correlation ≠ causation.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const MIN = 0, MAX = 10, MAX_POINTS = 1500;
+  const state = { pts: [], pattern: "pos" };
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const inside = v => clamp(v, MIN + 0.1, MAX - 0.1);
+
+  // ---------- patterns: each returns one point; s = noise ----------
+  const PATTERNS = {
+    pos:   { label: "↗ Positive",     desc: "y rises with x, plus noise. Increase noise to weaken r.",
+             gen: s => { const x = rand(0.5, 9.5); return [x, 0.5 + 0.9 * x + gauss() * s]; } },
+    neg:   { label: "↘ Negative",     desc: "y falls as x rises, plus noise.",
+             gen: s => { const x = rand(0.5, 9.5); return [x, 9.5 - 0.9 * x + gauss() * s]; } },
+    none:  { label: "● No relation",  desc: "x and y are independent random values → r near 0 (not exactly 0 because of chance).",
+             gen: () => [rand(0.5, 9.5), rand(0.5, 9.5)] },
+    circle:{ label: "◯ Circle",       desc: "Clearly structured, but not linear → r ≈ 0. Correlation misses non-linear patterns!",
+             gen: s => { const a = rand(0, 2 * Math.PI), R = 3.5; return [5 + R * Math.cos(a) + gauss() * s * 0.3, 5 + R * Math.sin(a) + gauss() * s * 0.3]; } },
+    u:     { label: "∪ U-shape",      desc: "y depends strongly on x (y ≈ x²), yet r ≈ 0 because the left and right halves cancel.",
+             gen: s => { const x = rand(0.8, 9.2); return [x, 0.2 + 0.4 * (x - 5) * (x - 5) + gauss() * s * 0.5]; } },
+    sine:  { label: "∿ Sine wave",    desc: "A repeating pattern: related to x, but r is small.",
+             gen: s => { const x = rand(0.3, 9.7); return [x, 5 + 3.5 * Math.sin(x * 1.3) + gauss() * s * 0.4]; } },
+    clust: { label: "▪▪ Two clusters",desc: "Each cluster alone has no relation, but together they form a diagonal → r looks strong. (Simpson-style trap)",
+             gen: s => { const k = Math.random() < 0.5; const c = k ? 3 : 7; return [c + gauss() * (0.4 + s * 0.4), c + gauss() * (0.4 + s * 0.4)]; } },
+    outl:  { label: "⚠ One outlier",  desc: "A random blob (r≈0) plus one far-away point at the top-right. Watch one point drive r!",
+             gen: s => [clamp(3 + gauss() * (0.5 + s * 0.6), 0.2, 9.8), clamp(3 + gauss() * (0.5 + s * 0.6), 0.2, 9.8)],
+             post: pts => { pts.push([9.5, 9.5]); } },
+    perfect:{label: "／ Perfect line", desc: "All points exactly on a line → r = +1 (noise is ignored).",
+             gen: () => { const x = rand(0.5, 9.5); return [x, 0.5 + 0.95 * x]; } },
+    custom:{ label: "✏ Custom",       desc: "Your own sprayed points.", hidden: true }
+  };
+
+  function build(key) {
+    const P = PATTERNS[key]; if (!P || !P.gen) return;
+    const n = +$("nSlider").value, s = +$("noiseSlider").value, out = [];
+    for (let i = 0; i < n; i++) { const [x, y] = P.gen(s); out.push([x, y]); }
+    if (P.post) P.post(out);
+    state.pts = out.map(([x, y]) => ({ x: inside(x), y: inside(y) }));
+  }
+  function selectPattern(key, regen = true) {
+    state.pattern = key;
+    document.querySelectorAll("#patterns button").forEach(b => b.classList.toggle("active", b.dataset.k === key));
+    $("patDesc").textContent = PATTERNS[key].desc;
+    $("note").textContent = "Pattern: " + PATTERNS[key].label.replace(/^\S+\s/, "") + " — " + PATTERNS[key].desc;
+    if (regen) build(key);
+    update();
+  }
+
+  // ---------- stats ----------
+  function stats() {
+    const n = state.pts.length;
+    if (n < 2) return { n };
+    let mx = 0, my = 0;
+    for (const p of state.pts) { mx += p.x; my += p.y; }
+    mx /= n; my /= n;
+    let sxx = 0, syy = 0, sxy = 0;
+    for (const p of state.pts) { const dx = p.x - mx, dy = p.y - my; sxx += dx * dx; syy += dy * dy; sxy += dx * dy; }
+    const ok = sxx > 1e-12 && syy > 1e-12;
+    return { n, mx, my, sdx: Math.sqrt(sxx / (n - 1)), sdy: Math.sqrt(syy / (n - 1)), cov: sxy / (n - 1),
+             r: ok ? sxy / Math.sqrt(sxx * syy) : NaN, slope: sxx > 1e-12 ? sxy / sxx : NaN };
+  }
+  function describe(r) {
+    if (!isFinite(r)) return "–";
+    const a = Math.abs(r);
+    const w = a >= .9 ? "very strong" : a >= .7 ? "strong" : a >= .4 ? "moderate" : a >= .2 ? "weak" : "very weak / none";
+    return a < .2 ? w + " linear relationship" : w + (r > 0 ? " positive" : " negative") + " linear relationship";
+  }
+
+  // ---------- canvas ----------
+  const cv = $("chart"), cx = cv.getContext("2d");
+  const PAD = { l: 34, r: 12, t: 12, b: 28 };
+  let W = 0, H = 0, hover = null, S = { n: 0 };
+  const sx = x => PAD.l + (x - MIN) / (MAX - MIN) * (W - PAD.l - PAD.r);
+  const sy = y => H - PAD.b - (y - MIN) / (MAX - MIN) * (H - PAD.t - PAD.b);
+  const ix = px => MIN + (px - PAD.l) / (W - PAD.l - PAD.r) * (MAX - MIN);
+  const iy = py => MIN + (H - PAD.b - py) / (H - PAD.t - PAD.b) * (MAX - MIN);
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  function draw() {
+    cx.clearRect(0, 0, W, H);
+    cx.font = "11px system-ui, sans-serif"; cx.textBaseline = "middle";
+    cx.strokeStyle = "#eef0f4"; cx.fillStyle = "#6b7280"; cx.lineWidth = 1;
+    cx.textAlign = "right";
+    for (let v = MIN; v <= MAX; v += 2) { const py = sy(v); cx.beginPath(); cx.moveTo(PAD.l, py); cx.lineTo(W - PAD.r, py); cx.stroke(); cx.fillText(v, PAD.l - 6, py); }
+    cx.textAlign = "center";
+    for (let v = MIN; v <= MAX; v += 2) { const px = sx(v); cx.beginPath(); cx.moveTo(px, PAD.t); cx.lineTo(px, H - PAD.b); cx.stroke(); cx.fillText(v, px, H - PAD.b + 12); }
+    cx.fillText("x", W - PAD.r - 6, H - 7);
+    cx.fillText("y", 10, PAD.t + 6);
+    cx.strokeStyle = "#9ca3af"; cx.strokeRect(PAD.l, PAD.t, W - PAD.l - PAD.r, H - PAD.t - PAD.b);
+
+    cx.save(); cx.beginPath(); cx.rect(PAD.l, PAD.t, W - PAD.l - PAD.r, H - PAD.t - PAD.b); cx.clip();
+    if (isFinite(S.slope)) {
+      const c = S.my - S.slope * S.mx;
+      cx.strokeStyle = "#2563eb"; cx.lineWidth = 2.5; cx.beginPath();
+      cx.moveTo(sx(MIN), sy(S.slope * MIN + c)); cx.lineTo(sx(MAX), sy(S.slope * MAX + c)); cx.stroke();
+    }
+    cx.lineWidth = 1; cx.strokeStyle = "#fff";
+    for (const p of state.pts) {
+      cx.fillStyle = "rgba(15,118,110,.85)";
+      cx.beginPath(); cx.arc(sx(p.x), sy(p.y), 4, 0, 7); cx.fill(); cx.stroke();
+    }
+    cx.restore();
+    if (hover) {
+      cx.beginPath(); cx.arc(hover.x, hover.y, +$("radSlider").value, 0, 7);
+      cx.strokeStyle = "rgba(245,158,11,.9)"; cx.setLineDash([4, 4]); cx.lineWidth = 1.5; cx.stroke(); cx.setLineDash([]);
+    }
+  }
+
+  // ---------- update UI ----------
+  const f = (v, d = 3) => isFinite(v) ? v.toFixed(d) : "–";
+  function update() {
+    S = stats();
+    $("sn").textContent = S.n;
+    if (S.n >= 2 && isFinite(S.r)) {
+      const r = S.r;
+      $("r").textContent = (r >= 0 ? "+" : "−") + Math.abs(r).toFixed(3);
+      $("r").style.color = Math.abs(r) < .2 ? "#4b5563" : r > 0 ? "#0f766e" : "#dc2626";
+      $("interp").textContent = describe(r);
+      $("marker").style.left = ((r + 1) / 2 * 100) + "%";
+      $("r2").textContent = f(r * r) + "  (" + (r * r * 100).toFixed(1) + "%)";
+      $("means").textContent = f(S.mx, 2) + " , " + f(S.my, 2);
+      $("sds").textContent = f(S.sdx, 2) + " , " + f(S.sdy, 2);
+      $("cov").textContent = f(S.cov, 3);
+      $("slope").textContent = f(S.slope, 3);
+    } else {
+      ["r", "r2", "means", "sds", "cov", "slope"].forEach(k => $(k).textContent = "–");
+      $("r").style.color = "#4b5563";
+      $("interp").textContent = S.n >= 2 ? "No spread in x or y — r undefined" : "Add at least 2 points";
+      $("marker").style.left = "50%";
+    }
+    draw();
+  }
+
+  // ---------- spray ----------
+  let spraying = false, sprayTimer = null, last = null;
+  function pos(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  function sprayAt(p) {
+    const r = +$("radSlider").value, d = +$("denSlider").value;
+    for (let i = 0; i < d && state.pts.length < MAX_POINTS; i++) {
+      const a = rand(0, 2 * Math.PI), rr = r * Math.sqrt(Math.random());
+      const x = ix(p.x + rr * Math.cos(a)), y = iy(p.y + rr * Math.sin(a));
+      if (x >= MIN && x <= MAX && y >= MIN && y <= MAX) state.pts.push({ x, y });
+    }
+    if (state.pattern !== "custom") selectPattern("custom", false);
+    update();
+  }
+  cv.addEventListener("pointerdown", e => {
+    cv.setPointerCapture(e.pointerId); spraying = true; last = pos(e); sprayAt(last);
+    sprayTimer = setInterval(() => last && sprayAt(last), 60);
+  });
+  cv.addEventListener("pointermove", e => { hover = pos(e); if (spraying) last = hover; else draw(); });
+  const end = () => { spraying = false; clearInterval(sprayTimer); last = null; };
+  cv.addEventListener("pointerup", end);
+  cv.addEventListener("pointercancel", end);
+  cv.addEventListener("pointerleave", () => { hover = null; if (!spraying) draw(); });
+
+  // ---------- controls ----------
+  const box = $("patterns");
+  for (const [k, P] of Object.entries(PATTERNS)) {
+    if (P.hidden) continue;
+    const b = document.createElement("button"); b.textContent = P.label; b.dataset.k = k;
+    b.onclick = () => selectPattern(k); box.appendChild(b);
+  }
+  $("nSlider").oninput = e => { $("nVal").textContent = e.target.value; if (state.pattern !== "custom") { build(state.pattern); update(); } };
+  $("noiseSlider").oninput = e => { $("noiseVal").textContent = (+e.target.value).toFixed(1); if (state.pattern !== "custom") { build(state.pattern); update(); } };
+  $("radSlider").oninput = e => $("radVal").textContent = e.target.value;
+  $("denSlider").oninput = e => $("denVal").textContent = e.target.value;
+  $("regen").onclick = () => { if (state.pattern === "custom") selectPattern("pos"); else { build(state.pattern); update(); } };
+  $("clear").onclick = () => { state.pts = []; selectPattern("custom", false); $("note").textContent = "Pattern: Custom — spray points on the chart."; update(); };
+
+  // ---------- layout ----------
+  const layout = () => document.documentElement.style.setProperty("--hh", $("top").offsetHeight + "px");
+  window.addEventListener("resize", () => { layout(); resize(); });
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv);
+
+  layout(); selectPattern("pos"); resize();
+  window.addEventListener("load", () => { layout(); resize(); });
+})();
+</script>
+</body>
+</html>

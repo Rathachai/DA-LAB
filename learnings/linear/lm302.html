@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LM302 – Train-Test Split with Feature Selection</title>
+<link rel="icon" type="image/svg+xml" href="https://rathachai.github.io/assets/favicon.svg">
+<style>
+:root{
+  --bg:#f4f6fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#2563eb; --brand2:#1d4ed8; --accent:#f59e0b; --good:#059669; --bad:#dc2626; --opt:#9333ea;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;min-height:100vh;font-size:15px;line-height:1.45}
+
+header{position:relative;color:#fff;background:#1e3a8a url("https://rathachai.github.io/images/banner.jpg") center center/cover no-repeat;flex:0 0 auto}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.82),rgba(15,23,42,.45))}
+.head-inner{position:relative;padding:8px 20px;max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{height:24px;width:auto;display:block}
+h1{margin:0;font-size:clamp(17px,2.4vw,22px);font-weight:700;line-height:1.2}
+header p{margin:2px 0 0;max-width:720px;font-size:12.5px;opacity:.95;line-height:1.35}
+.credit{font-size:12px;color:#e5e7eb;text-align:right;white-space:nowrap;opacity:.9}
+.credit a{color:#fff;font-weight:600;text-decoration:none}
+.credit a:hover{text-decoration:underline}
+
+main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1.05fr .95fr;gap:16px;padding:16px;max-width:1400px;width:100%;margin:0 auto}
+.pane{overflow-y:auto;min-height:0;padding-right:4px;display:flex;flex-direction:column;gap:14px;height:calc(100vh - var(--hh,70px) - 32px);min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
+.card h2{margin:0 0 8px;font-size:16px}
+.card h2 small{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+.pane-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 -4px}
+
+canvas{display:block;width:100%;border-radius:8px;background:#fff;border:1px solid var(--line)}
+#corrChart{aspect-ratio:16/9;max-height:300px}
+#lossChart{aspect-ratio:16/8}
+
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.row label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.field{display:flex;flex-direction:column;gap:2px;flex:1 1 150px;min-width:130px}
+.field .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.field .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--brand)}
+button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer;transition:.12s}
+button:hover{border-color:var(--brand);color:var(--brand)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.primary:hover{background:var(--brand2);color:#fff}
+button.warn{background:var(--accent);border-color:var(--accent);color:#fff}
+button.small{padding:4px 8px;font-size:12.5px}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.tabs{display:flex;gap:4px;margin:0 0 10px;border-bottom:2px solid var(--line)}
+.tabs button{border:0;border-bottom:3px solid transparent;border-radius:6px 6px 0 0;margin-bottom:-2px;background:none;color:var(--muted);font-weight:600;padding:8px 12px}
+.tabs button.on{color:var(--brand2);border-bottom-color:var(--brand);background:#eff6ff}
+.corrinfo{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:13px;margin-top:8px}
+.corrinfo b{font-family:ui-monospace,Menlo,Consolas,monospace}
+
+/* data table */
+.tablewrap{max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table.data{border-collapse:separate;border-spacing:0;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+table.data th,table.data td{padding:4px 8px;text-align:right;border-bottom:1px solid #f0f1f4;white-space:nowrap}
+table.data thead th{position:sticky;top:0;background:#f8fafc;z-index:2;border-bottom:2px solid var(--line);vertical-align:top;padding:6px 6px}
+table.data th .hb{display:block;width:100%;font-weight:700;padding:4px 6px;font-size:13px}
+table.data th .hb.on{background:#dbeafe;border-color:var(--brand);color:var(--brand2)}
+table.data th label{display:flex;align-items:center;justify-content:center;gap:4px;font-size:11.5px;color:var(--muted);margin-top:4px;cursor:pointer}
+table.data th .rr{font-size:11.5px;font-family:ui-monospace,Menlo,Consolas,monospace;text-align:center;margin-top:2px}
+table.data td.sel{background:#eff6ff}
+table.data tbody tr:nth-child(even) td:not(.sel){background:#fafbfc}
+table.data tbody tr.te td,table.data tbody tr.te:nth-child(even) td:not(.sel){background:#fff4d6 !important}
+.splitbar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:8px 0 2px;background:#eee}
+#barTrain{background:#0f766e;transition:width .15s}#barTest{background:#d97706;transition:width .15s}
+table.mini tr.stale td{color:#9ca3af;font-style:italic}
+#gap{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+#gap.bad{background:#fffbeb;color:#92400e}
+.pos{color:#0f766e}.neg{color:#dc2626}
+
+/* right */
+.equation{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(14px,2.2vw,17px);font-weight:600;color:var(--brand);padding:6px 2px;word-break:break-word;line-height:1.6}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kv .k{font-size:12px;color:var(--muted)}
+.kv .v{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.metric{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff}
+.metric .name{font-weight:700;font-size:13px}
+.metric .val{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:19px;font-weight:700;color:var(--brand2);font-variant-numeric:tabular-nums}
+.metric .desc{font-size:11.5px;color:var(--muted);line-height:1.3}
+#status{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+#status.ok{background:#ecfdf5;color:#065f46}
+#status.err{background:#fef2f2;color:#991b1b}
+#status.warn{background:#fffbeb;color:#92400e}
+table.mini{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+table.mini th,table.mini td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right}
+table.mini th:first-child,table.mini td:first-child{text-align:left}
+table.mini th{color:var(--muted);font-weight:600;font-size:12px}
+table.mini tr.best td{background:#ecfdf5;font-weight:700}
+.scroll-x{overflow-x:auto}
+.card ol,.card ul{margin:6px 0 0;padding-left:20px;font-size:13.5px}
+.card code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12.5px}
+
+@media (max-width:860px){
+  main{display:block;padding:12px}
+  .pane{height:auto;overflow:visible;padding:0}
+  .pane + .pane{margin-top:14px}
+  .head-inner{padding:8px 14px;flex-direction:column;align-items:flex-start;gap:4px}
+  .credit{text-align:left;white-space:normal;font-size:11.5px}
+  .tablewrap{max-height:360px}
+}
+</style>
+</head>
+<body>
+
+<header id="top">
+  <div class="head-inner">
+    <div>
+      <div class="brand">
+        <img src="https://rathachai.github.io/assets/logo.svg" alt="Logo">
+        <h1>LM302 · Train–Test Split &amp; Feature Selection</h1>
+      </div>
+      <p>Split the 100 samples into train and test (10–90 %), pick features, train on the train rows, and judge the model on the unseen test rows.</p>
+    </div>
+    <div class="credit">Powered by: Sonnet &nbsp;|&nbsp; AI Whisperer: <a href="https://rathachai.github.io" target="_blank" rel="noopener">rathachai.github.io</a></div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ LEFT: data ============ -->
+  <section class="pane">
+    <p class="pane-title">① Explore the data</p>
+
+    <div class="card">
+      <div class="tabs" role="tablist">
+        <button id="tab1" class="on" role="tab">① Correlation with y <small id="corrTitle" style="font-weight:400"></small></button>
+        <button id="tab2" role="tab">② y vs. ŷ (model)</button>
+      </div>
+      <canvas id="corrChart" aria-label="Correlation chart"></canvas>
+      <div class="row" style="margin:8px 0 0">
+        <label><input type="checkbox" id="showTrain" checked> <span style="color:#0f766e">● train</span></label>
+        <label><input type="checkbox" id="showTest" checked> <span style="color:#d97706">◆ test</span></label>
+        <label><input type="checkbox" id="showRes" checked> residuals</label>
+        <span class="hint" style="margin:0">unchecked set = faded; residuals only for checked sets</span>
+      </div>
+      <div class="corrinfo">
+        <span id="infoL">Pearson r = <b id="corrR">–</b></span>
+        <span id="corrWords" style="color:var(--muted)"></span>
+      </div>
+      <p class="hint" id="tabHint">Click a column name in the table below to see its graph (amber = test rows). Pressing Train switches to the model tab.</p>
+    </div>
+      <p class="hint">Click a column name in the table below to see its graph.</p>
+    </div>
+
+    <div class="card">
+      <h2>Train / test split <small>random assignment of the 100 rows</small></h2>
+      <div class="field">
+        <div class="lab"><span>train ratio</span><b id="ratioVal">70 % / 30 %</b></div>
+        <input type="range" id="ratioSlider" min="10" max="90" step="1" value="70">
+      </div>
+      <div class="splitbar"><div id="barTrain" style="width:70%"></div><div id="barTest" style="width:30%"></div></div>
+      <div class="row">
+        <button class="primary" id="resplit">🔀 Random split again</button>
+        <span class="hint" style="margin:0"><span style="color:#0f766e">●</span> train <b id="nTrain">0</b> &nbsp;<span style="color:#d97706">◆</span> test <b id="nTest">0</b></span>
+      </div>
+      <p class="hint">Test rows are shaded <b style="color:#b45309">amber</b> in the table. The model learns only from the train rows; test rows are used just to check it.</p>
+    </div>
+
+    <div class="card">
+      <h2>Data table <small>100 samples · tick a column to use it as a feature</small></h2>
+      <div class="tablewrap"><table class="data" id="table"></table></div>
+      <div class="row">
+        <button class="small" id="selAll">Select all</button>
+        <button class="small" id="selNone">Select none</button>
+        <button class="small" id="selStrong">Select |r| ≥ 0.5</button>
+        <button class="small" id="selBest">Select |r| ≥ 0.7</button>
+        <span class="hint" style="margin:0">Selected: <b id="selCount">0</b></span>
+      </div>
+      <p class="hint">Tick <b>log</b> to feed ln(value) instead of the raw value — r in the header and the graph update instantly. Tip: <b>id</b> is just a row number and <b>y</b> is the target we are predicting — see what happens if you tick them!</p>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT: train ============ -->
+  <section class="pane">
+    <p class="pane-title">② Train a linear model</p>
+
+    <div class="card">
+      <h2>Model equation</h2>
+      <div class="equation" id="equation">ŷ = β₀</div>
+      <div class="scroll-x">
+        <table class="mini" id="coefTable"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Gradient descent</h2>
+      <div class="row" style="margin-top:0">
+        <button id="stepBtn" class="primary">⏭ Step</button>
+        <button id="playBtn" class="warn">▶ Train</button>
+        <button id="solveBtn">⚡ Solve instantly</button>
+        <button id="resetBtn">↺ Reset</button>
+      </div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>learning rate (α)</span><b id="lrVal">0.050</b></div>
+          <input type="range" id="lrSlider" min="0.005" max="0.12" step="0.005" value="0.05">
+        </div>
+        <div class="field">
+          <div class="lab"><span>speed (steps / frame)</span><b id="spVal">5</b></div>
+          <input type="range" id="spSlider" min="1" max="50" step="1" value="5">
+        </div>
+      </div>
+      <div class="pair" style="margin-top:10px">
+        <div class="kv"><div class="k">iteration</div><div class="v" id="iter">0</div></div>
+        <div class="kv"><div class="k">features used (p)</div><div class="v" id="pCount">0</div></div>
+      </div>
+      <div id="status">Tick some columns, then press <b>Train</b>.</div>
+      <p class="hint">Inputs are standardized (z-scores) internally so all features learn at the same pace; the equation above is converted back to the original units.</p>
+    </div>
+
+    <div class="card">
+      <h2>Performance <small>train set vs. test set</small></h2>
+      <p class="hint" style="margin:0 0 6px"><b>Train set</b> — used to fit the model (<span id="nTr2">0</span> rows)</p>
+      <div class="metrics">
+        <div class="metric"><div class="name">MSE</div><div class="val" id="mse">–</div><div class="desc">Loss we minimize.</div></div>
+        <div class="metric"><div class="name">RMSE</div><div class="val" id="rmse">–</div><div class="desc">Typical error, in y units.</div></div>
+        <div class="metric"><div class="name">MAE</div><div class="val" id="mae">–</div><div class="desc">Average |error|.</div></div>
+        <div class="metric"><div class="name">MAPE</div><div class="val" id="mape">–</div><div class="desc">Average |error| as a % of y.</div></div>
+        <div class="metric"><div class="name">R²</div><div class="val" id="r2">–</div><div class="desc">Share of y's variance explained. Never drops when you add features.</div></div>
+        <div class="metric"><div class="name">Adj. R²</div><div class="val" id="ar2">–</div><div class="desc">R² penalized for extra features — the fair way to compare.</div></div>
+      </div>
+      <p class="hint" style="margin:12px 0 6px"><b>Test set</b> — held out, never used for training (<span id="nTe2">0</span> rows)</p>
+      <div class="metrics">
+        <div class="metric"><div class="name">Test MSE</div><div class="val" id="tMse" style="color:#b45309">–</div><div class="desc">Squared error on unseen rows.</div></div>
+        <div class="metric"><div class="name">Test RMSE</div><div class="val" id="tRmse" style="color:#b45309">–</div><div class="desc">The honest error on unseen data.</div></div>
+        <div class="metric"><div class="name">Test MAE</div><div class="val" id="tMae" style="color:#b45309">–</div><div class="desc">Average |error| on unseen rows.</div></div>
+        <div class="metric"><div class="name">Test MAPE</div><div class="val" id="tMape" style="color:#b45309">–</div><div class="desc">Test error as a % of y.</div></div>
+        <div class="metric"><div class="name">Test R²</div><div class="val" id="tR2" style="color:#b45309">–</div><div class="desc">Variance explained on unseen rows.</div></div>
+      </div>
+      <div id="gap">Train a model to compare train vs. test.</div>
+    </div>
+
+    <div class="card">
+      <h2>Loss curve <small>MSE vs. iteration</small></h2>
+      <canvas id="lossChart" aria-label="Loss curve"></canvas>
+      <div class="row">
+        <label><input type="checkbox" id="logLoss"> log scale</label>
+        <span class="hint" style="margin:0"><span style="color:#2563eb">■</span> train &nbsp;<span style="color:#d97706">■</span> test &nbsp;<span style="color:#9333ea">╌</span> best train MSE: <b id="optMse">–</b></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Model comparison <small>logged when training converges · best = lowest Test MAE (current split)</small></h2>
+      <div class="scroll-x"><table class="mini" id="cmpTable"></table></div>
+      <div class="row"><button class="small" id="cmpClear">Clear table</button></div>
+      <p class="hint">Look for the highest <b>Adj. R²</b> with the fewest features. Compare <b>Test MAE / MAPE</b> with the train values across feature sets and split ratios. x3 and x4 are noise — they tend to look fine on train rows but not on test rows, especially when the train set is small (try 10–30 %).</p>
+    </div>
+
+    <div class="card">
+      <h2>Feature-selection checklist</h2>
+      <ul>
+        <li>Keep features with a <b>strong |r|</b> with y (positive <i>or</i> negative).</li>
+        <li>Drop features with r ≈ 0 — they add noise, not signal.</li>
+        <li>If the graph is <b>curved</b> (e.g. exponential), try the <b>log</b> transform — a straighter cloud means a higher |r| and a better linear fit.</li>
+        <li>A U-shape (like <b>x3</b>) has r ≈ 0 but still depends on y: a straight line cannot capture it, so r alone can mislead.</li>
+        <li>Never use <b>y</b> itself (data leakage) or an <b>id</b> (meaningless number).</li>
+        <li>Judge each model on the <b>test</b> rows (Test RMSE / Test R²), not on the rows it trained on.</li>
+        <li>With a small train ratio the fit is unstable — hit <b>Random split again</b> a few times to see how much results move.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+
+  // ---------- deterministic data ----------
+  function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const rng = mulberry(20240607);
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - rng())) * Math.cos(2 * Math.PI * rng());
+  const N = 100;
+  const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+  const zs = a => { const m = mean(a), s = sd(a); return a.map(v => (v - m) / s); };
+  const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
+  function corr(a, b) {
+    const ma = mean(a), mb = mean(b); let sab = 0, saa = 0, sbb = 0;
+    for (let i = 0; i < a.length; i++) { const da = a[i] - ma, db = b[i] - mb; sab += da * db; saa += da * da; sbb += db * db; }
+    return saa > 0 && sbb > 0 ? sab / Math.sqrt(saa * sbb) : NaN;
+  }
+
+  const zy = zs(Array.from({ length: N }, gauss));
+  const TARGET_R = [0.8, 0.7, null, null, null, -0.75, -0.85];   // null = special shape (x3 U-shape, x5 exponential)
+  const SCALE = [[20, 4], [150, 25], [12, 2], [30, 6], [60, 12], [12, 3], [200, 40]];
+  const orthNoise = () => {      // noise orthogonal to y (and centered)
+    let e = Array.from({ length: N }, gauss);
+    const me = mean(e); e = e.map(v => v - me);
+    const proj = dot(e, zy) / dot(zy, zy); return zs(e.map((v, i) => v - proj * zy[i]));
+  };
+  const cols = [{ name: "id", v: Array.from({ length: N }, (_, i) => i + 1) }];
+  TARGET_R.forEach((rho, k) => {
+    const [m, s] = SCALE[k];
+    let v;
+    if (k === 2) {               // x3: U-shape — y = a + (x3 − m)²·c, with the sign of (x3 − m) balanced so linear r ≈ 0
+      const zmin = Math.min(...zy), tt = zy.map(z => Math.sqrt(z - zmin + 0.05) * z), order = zy.map((z, i) => i).sort((a, b) => Math.abs(tt[b]) - Math.abs(tt[a]));
+      const sg = Array(N).fill(1); let run = 0;
+      order.forEach(i => { const t = tt[i]; sg[i] = run > 0 ? -1 : 1; run += sg[i] * t; });
+      for (let pass = 0; pass < 8; pass++) order.forEach(i => { const alt = run - 2 * sg[i] * tt[i]; if (Math.abs(alt) < Math.abs(run)) { run = alt; sg[i] = -sg[i]; } });
+      v = zy.map((z, i) => +(m + sg[i] * Math.sqrt(z - zmin + 0.05) * 2.1 + 0.25 * gauss()).toFixed(2));
+    } else if (k === 3) {        // x4: pure noise — filled in below once the other columns exist
+      v = Array(N).fill(0);
+    } else if (k === 4) {        // x5: exponential — clearly curved; ln(x5) is linear in y (corr −0.93)
+      const e = orthNoise(), rl = -0.93;
+      v = zy.map((z, i) => +Math.exp(1.8 + 1.0 * (rl * z + Math.sqrt(1 - rl * rl) * e[i])).toFixed(2));
+    } else {
+      const e = orthNoise();
+      v = zy.map((z, i) => +(m + s * (rho * z + Math.sqrt(1 - rho * rho) * e[i])).toFixed(2));
+    }
+    cols.push({ name: "x" + (k + 1), v });
+  });
+  cols.push({ name: "y", v: zy.map(z => +(50 + 10 * z).toFixed(1)) });
+  const Y = cols[cols.length - 1].v, YI = cols.length - 1;
+  // x3 and x4 are NOISE: make them uncorrelated with y and with every useful column (least-squares residuals),
+  // so they add nothing to the fit but still cost one degree of freedom each.
+  function residualOn(vec, basis) {
+    const p = basis.length + 1, A = Array.from({ length: p }, () => Array(p + 1).fill(0));
+    for (let r = 0; r < N; r++) { const x = [1, ...basis.map(b => b[r])]; for (let a = 0; a < p; a++) { for (let b = 0; b < p; b++) A[a][b] += x[a] * x[b]; A[a][p] += x[a] * vec[r]; } }
+    for (let c = 0; c < p; c++) {
+      let piv = c; for (let r = c + 1; r < p; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      [A[c], A[piv]] = [A[piv], A[c]];
+      for (let r = 0; r < p; r++) if (r !== c) { const f = A[r][c] / A[c][c]; for (let k = c; k <= p; k++) A[r][k] -= f * A[c][k]; }
+    }
+    const co = A.map((row, i) => row[p] / row[i]);
+    return vec.map((v, r) => v - co[0] - basis.reduce((t, b, j) => t + co[j + 1] * b[r], 0));
+  }
+  {
+    const base = [Y, cols[1].v, cols[2].v, cols[5].v, cols[5].v.map(Math.log), cols[6].v, cols[7].v];
+    const x4raw = Array.from({ length: N }, gauss), x4res = zs(residualOn(x4raw, base));
+    cols[4].v = x4res.map(z => +(SCALE[3][0] + SCALE[3][1] * z).toFixed(2));
+    const x3old = cols[3].v, x3res = residualOn(x3old, [...base, x4res]), m3 = mean(x3old);
+    cols[3].v = x3res.map(v => +(m3 + v).toFixed(2));
+  }
+  // ---------- train / test split (random keys; the k rows with the smallest keys are TRAIN) ----------
+  const keys = Array.from({ length: N }, () => rng());
+  const isTest = Array(N).fill(false);
+  let TRI = [], TEI = [], nTr = 0, nTe = 0, ym = 0, ys = 1, splitId = 1, ratio = 70;
+  const subOf = (a, idx) => idx.map(i => a[i]);
+  // each column can be fed to the model as-is or as ln(value); features are standardized with TRAIN statistics only
+  function baseTransform(c) {
+    c.e = c.log ? c.v.map(Math.log) : c.v;
+    c.label = c.log ? "ln(" + c.name + ")" : c.name;
+    c.r = corr(c.e, Y); c.mean = mean(c.e); c.sd = sd(c.e);
+  }
+  function trainStats(c) {
+    const tr = subOf(c.e, TRI); c.tm = mean(tr); c.ts = sd(tr) || 1;
+    c.z = c.e.map(v => (v - c.tm) / c.ts);
+  }
+  function applyTransform(c) { baseTransform(c); trainStats(c); }
+  function applySplit() {
+    const k = clamp(Math.round(N * ratio / 100), 2, N - 1);
+    const order = Array.from({ length: N }, (_, i) => i).sort((a, b) => keys[a] - keys[b]);
+    order.forEach((i, r) => isTest[i] = r >= k);
+    TRI = order.slice(0, k).sort((a, b) => a - b); TEI = order.slice(k).sort((a, b) => a - b);
+    nTr = TRI.length; nTe = TEI.length;
+    const ytr = subOf(Y, TRI); ym = mean(ytr); ys = sd(ytr) || 1;
+    cols.forEach(c => { if (c.e) trainStats(c); });
+  }
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  cols.forEach(c => { c.log = false; baseTransform(c); });
+  applySplit();
+
+  // ---------- state ----------
+  const state = { sel: new Set(), active: 1, tab: 1, w: [], b: 0, iter: 0, history: [], histTest: [], playing: false, lr: 0.05, converged: false, diverged: false, idx: [] };
+  const fmt = (v, d = 3) => !isFinite(v) ? "∞" : Math.abs(v) >= 1e6 ? v.toExponential(2) : v.toFixed(d);
+  const sub = n => String(n).replace(/\d/g, d => "₀₁₂₃₄₅₆₇₈₉"[d]);
+  const sgn = v => v < 0 ? "−" : "+";
+
+  // ---------- table ----------
+  function buildTable() {
+    let h = "<thead><tr>";
+    cols.forEach((c, i) => {
+      h += `<th><button class="hb" data-col="${i}">${c.name}</button>
+        <label><input type="checkbox" data-sel="${i}"> use</label>
+        <label title="Use ln(${c.name}) instead of ${c.name}"><input type="checkbox" data-log="${i}"> log</label>
+        <div class="rr" id="rr${i}"></div></th>`;
+    });
+    h += "</tr></thead><tbody>";
+    for (let r = 0; r < N; r++) {
+      h += `<tr class="${isTest[r] ? "te" : ""}">` + cols.map((c, i) => `<td data-c="${i}">${i === 0 ? c.v[r] : i === YI ? c.v[r].toFixed(1) : c.v[r].toFixed(2)}</td>`).join("") + "</tr>";
+    }
+    $("table").innerHTML = h + "</tbody>";
+  }
+  function updateHeader(i) {
+    const c = cols[i], el = $("rr" + i), btn = document.querySelector(`#table .hb[data-col="${i}"]`);
+    el.className = "rr " + (c.r >= 0 ? "pos" : "neg");
+    el.textContent = "r=" + (c.r >= 0 ? "+" : "−") + Math.abs(c.r).toFixed(2);
+    btn.textContent = c.label;
+  }
+  function paintRows() { document.querySelectorAll("#table tbody tr").forEach((tr, r) => tr.classList.toggle("te", isTest[r])); }
+  function paintTable() {
+    document.querySelectorAll("#table [data-log]").forEach(cb => cb.checked = cols[+cb.dataset.log].log);
+    document.querySelectorAll("#table td").forEach(td => td.classList.toggle("sel", state.sel.has(+td.dataset.c)));
+    document.querySelectorAll("#table [data-sel]").forEach(cb => cb.checked = state.sel.has(+cb.dataset.sel));
+    document.querySelectorAll("#table .hb").forEach(b => b.classList.toggle("on", +b.dataset.col === state.active));
+    $("selCount").textContent = state.sel.size;
+  }
+  $("table").addEventListener("click", e => {
+    const hb = e.target.closest(".hb");
+    if (hb) { state.active = +hb.dataset.col; paintTable(); setTab(1); }
+  });
+  $("table").addEventListener("change", e => {
+    const lg = e.target.closest("[data-log]");
+    if (lg) {
+      const i = +lg.dataset.log; cols[i].log = lg.checked; applyTransform(cols[i]); updateHeader(i);
+      state.active = i;
+      if (state.sel.has(i)) selectionChanged(); else paintTable();
+      setTab(1);
+      return;
+    }
+    const cb = e.target.closest("[data-sel]"); if (!cb) return;
+    const i = +cb.dataset.sel;
+    cb.checked ? state.sel.add(i) : state.sel.delete(i);
+    selectionChanged();
+  });
+  const setSel = pred => { state.sel = new Set(cols.map((c, i) => i).filter(pred)); selectionChanged(); };
+  $("selAll").onclick = () => setSel(() => true);
+  $("selNone").onclick = () => setSel(() => false);
+  $("selStrong").onclick = () => setSel(i => i > 0 && i < YI && Math.abs(cols[i].r) >= 0.5);
+  $("selBest").onclick = () => setSel(i => i > 0 && i < YI && Math.abs(cols[i].r) >= 0.7);
+
+  // ---------- canvases ----------
+  const cc = $("corrChart"), cx = cc.getContext("2d");
+  const lc = $("lossChart"), lx = lc.getContext("2d");
+  let CW = 0, CH = 0, LW = 0, LH = 0;
+  function fit(canvas, ctx) {
+    const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [w, h];
+  }
+  function resize() { [CW, CH] = fit(cc, cx); [LW, LH] = fit(lc, lx); drawCorr(); drawLoss(); }
+  function ticks(lo, hi, n = 5) {
+    const raw = (hi - lo) / n, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+    const step = (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p, out = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+    return out;
+  }
+  function setTab(t) {
+    state.tab = t;
+    $("tab1").classList.toggle("on", t === 1); $("tab2").classList.toggle("on", t === 2);
+    drawCorr();
+  }
+  ["showTrain", "showTest", "showRes"].forEach(id => $(id).onchange = drawCorr);
+  $("tab1").onclick = () => setTab(1); $("tab2").onclick = () => setTab(2);
+  // visibility: unchecked set is faded (not hidden); residual lines are drawn only for checked sets
+  const aSet = i => ($(isTest[i] ? "showTest" : "showTrain").checked ? 1 : 0.15);
+  const resOn = i => $("showRes").checked && $(isTest[i] ? "showTest" : "showTrain").checked;
+  function diamond(x, y, r) { cx.beginPath(); cx.moveTo(x, y - r); cx.lineTo(x + r, y); cx.lineTo(x, y + r); cx.lineTo(x - r, y); cx.closePath(); }
+  function plotPt(i, x, y, trainColor) {
+    cx.globalAlpha = aSet(i); cx.strokeStyle = "#fff";
+    if (isTest[i]) { cx.fillStyle = "rgba(217,119,6,.95)"; diamond(x, y, 5.6); } else { cx.fillStyle = trainColor; cx.beginPath(); cx.arc(x, y, 3.6, 0, 7); }
+    cx.fill(); cx.stroke(); cx.globalAlpha = 1;
+  }
+  function drawPred() {
+    const P = { l: 44, r: 12, t: 10, b: 28 };
+    cx.clearRect(0, 0, CW, CH); cx.font = "11px system-ui, sans-serif"; cx.textBaseline = "middle";
+    const pred = Y.map((_, i) => predictStd(i)), ev = evaluate();
+    $("infoL").innerHTML = `Train RMSE = <b>${fmt(ev.rmse, 2)}</b> · <span style="color:#b45309">Test RMSE = <b>${fmt(ev.test.rmse, 2)}</b></span>`;
+    $("corrWords").textContent = "blue = train, amber = test · closer to the dashed line = better";
+    $("corrTitle").textContent = "";
+    let lo = Math.min(...Y, ...pred), hi = Math.max(...Y, ...pred);
+    if (!isFinite(lo) || !isFinite(hi)) return;
+    const pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
+    const sx = v => P.l + (v - lo) / (hi - lo) * (CW - P.l - P.r), sy = v => CH - P.b - (v - lo) / (hi - lo) * (CH - P.t - P.b);
+    cx.strokeStyle = "#eef0f4"; cx.fillStyle = "#6b7280"; cx.textAlign = "right";
+    const tk = ticks(lo, hi, 5);
+    tk.forEach(t => { cx.beginPath(); cx.moveTo(P.l, sy(t)); cx.lineTo(CW - P.r, sy(t)); cx.stroke(); cx.fillText(t, P.l - 6, sy(t)); });
+    cx.textAlign = "center";
+    tk.forEach(t => { cx.beginPath(); cx.moveTo(sx(t), P.t); cx.lineTo(sx(t), CH - P.b); cx.stroke(); cx.fillText(t, sx(t), CH - P.b + 12); });
+    cx.strokeStyle = "#9ca3af"; cx.strokeRect(P.l, P.t, CW - P.l - P.r, CH - P.t - P.b);
+    cx.fillStyle = "#374151"; cx.textAlign = "right"; cx.fillText("y (actual)", CW - P.r - 4, CH - P.b - 10);
+    cx.textAlign = "left"; cx.fillText("ŷ (predicted)", 4, P.t + 6);
+    cx.save(); cx.beginPath(); cx.rect(P.l, P.t, CW - P.l - P.r, CH - P.t - P.b); cx.clip();
+    cx.strokeStyle = "#9333ea"; cx.lineWidth = 2; cx.setLineDash([7, 5]);
+    cx.beginPath(); cx.moveTo(sx(lo), sy(lo)); cx.lineTo(sx(hi), sy(hi)); cx.stroke(); cx.setLineDash([]); cx.lineWidth = 1;
+    cx.strokeStyle = "rgba(239,68,68,.45)"; cx.beginPath();
+    Y.forEach((v, i) => { if (resOn(i)) { cx.moveTo(sx(v), sy(v)); cx.lineTo(sx(v), sy(pred[i])); } }); cx.stroke();
+    Y.forEach((v, i) => plotPt(i, sx(v), sy(pred[i]), "rgba(37,99,235,.8)"));
+    cx.restore();
+  }
+  function drawCorr() {
+    if (state.tab === 2) return drawPred();
+    $("infoL").innerHTML = 'Pearson r = <b id="corrR">–</b>';
+    const c = cols[state.active], P = { l: 44, r: 12, t: 10, b: 28 };
+    cx.clearRect(0, 0, CW, CH);
+    cx.font = "11px system-ui, sans-serif"; cx.textBaseline = "middle";
+    const xs = c.e, lo = Math.min(...xs), hi = Math.max(...xs), ylo = Math.min(...Y) - 2, yhi = Math.max(...Y) + 2;
+    const xl = lo - (hi - lo) * 0.04, xh = hi + (hi - lo) * 0.04;
+    const sx = v => P.l + (v - xl) / (xh - xl) * (CW - P.l - P.r), sy = v => CH - P.b - (v - ylo) / (yhi - ylo) * (CH - P.t - P.b);
+    cx.strokeStyle = "#eef0f4"; cx.fillStyle = "#6b7280"; cx.textAlign = "right";
+    ticks(ylo, yhi, 5).forEach(t => { cx.beginPath(); cx.moveTo(P.l, sy(t)); cx.lineTo(CW - P.r, sy(t)); cx.stroke(); cx.fillText(t, P.l - 6, sy(t)); });
+    cx.textAlign = "center";
+    ticks(xl, xh, 6).forEach(t => { cx.beginPath(); cx.moveTo(sx(t), P.t); cx.lineTo(sx(t), CH - P.b); cx.stroke(); cx.fillText(t, sx(t), CH - P.b + 12); });
+    cx.strokeStyle = "#9ca3af"; cx.strokeRect(P.l, P.t, CW - P.l - P.r, CH - P.t - P.b);
+    cx.fillStyle = "#374151"; cx.textAlign = "right"; cx.fillText(c.label, CW - P.r - 4, CH - P.b - 10);
+    cx.textAlign = "left"; cx.fillText("y", 4, P.t + 6);
+    const slope = c.r * sd(Y) / c.sd, icpt = mean(Y) - slope * c.mean;
+    cx.strokeStyle = "#2563eb"; cx.lineWidth = 2.5; cx.beginPath();
+    cx.moveTo(sx(xl), sy(slope * xl + icpt)); cx.lineTo(sx(xh), sy(slope * xh + icpt)); cx.stroke(); cx.lineWidth = 1;
+    cx.strokeStyle = "rgba(239,68,68,.4)"; cx.lineWidth = 1; cx.beginPath();
+    xs.forEach((v, i) => { if (resOn(i)) { cx.moveTo(sx(v), sy(Y[i])); cx.lineTo(sx(v), sy(slope * v + icpt)); } }); cx.stroke();
+    xs.forEach((v, i) => plotPt(i, sx(v), sy(Y[i]), "rgba(15,118,110,.8)"));
+    $("corrTitle").textContent = c.label + " vs. y";
+    $("corrR").textContent = (c.r >= 0 ? "+" : "−") + Math.abs(c.r).toFixed(3);
+    const a = Math.abs(c.r);
+    $("corrWords").textContent = (a >= .9 ? "very strong" : a >= .7 ? "strong" : a >= .4 ? "moderate" : a >= .2 ? "weak" : "very weak / none") + (a >= .2 ? (c.r > 0 ? " positive" : " negative") : "") + " linear relationship";
+  }
+
+  // ---------- regression math ----------
+  function prepare() {
+    state.idx = [...state.sel].sort((a, b) => a - b);
+  }
+  const Z = j => cols[state.idx[j]].z;
+  function predictStd(i) { let y = state.b; for (let j = 0; j < state.idx.length; j++) y += state.w[j] * Z(j)[i]; return y; }
+  function evalSet(set) {
+    let se = 0, ae = 0, pe = 0; const my = mean(set.map(i => Y[i]));
+    set.forEach(i => { const e = Y[i] - predictStd(i); se += e * e; ae += Math.abs(e); pe += Math.abs(e / Y[i]); });
+    const n = set.length, mse = se / n, sst = set.reduce((t, i) => t + (Y[i] - my) ** 2, 0) / n;
+    return { mse, rmse: Math.sqrt(mse), mae: ae / n, mape: 100 * pe / n, r2: 1 - mse / sst };
+  }
+  function evaluate() {
+    const tr = evalSet(TRI), p = state.idx.length;
+    tr.ar2 = p + 1 < nTr ? 1 - (1 - tr.r2) * (nTr - 1) / (nTr - p - 1) : NaN;
+    tr.test = evalSet(TEI); return tr;
+  }
+  function gradient() {
+    const p = state.idx.length, g = Array(p).fill(0); let gb = 0;
+    TRI.forEach(i => {
+      const e = Y[i] - predictStd(i); gb += -2 * e;
+      for (let j = 0; j < p; j++) g[j] += -2 * Z(j)[i] * e;
+    });
+    return { g: g.map(v => v / nTr), gb: gb / nTr };
+  }
+  // normal equations on standardized TRAIN features (tiny ridge for singular cases)
+  function solveExact() {
+    const p = state.idx.length, A = [], bvec = [];
+    for (let a = 0; a < p; a++) {
+      A.push(Array.from({ length: p }, (_, b) => TRI.reduce((t, i) => t + Z(a)[i] * Z(b)[i], 0) / nTr + (a === b ? 1e-9 : 0)));
+      bvec.push(TRI.reduce((t, i) => t + Z(a)[i] * (Y[i] - ym), 0) / nTr);
+    }
+    for (let c = 0; c < p; c++) {            // Gauss-Jordan
+      let piv = c; for (let r = c + 1; r < p; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      [A[c], A[piv]] = [A[piv], A[c]]; [bvec[c], bvec[piv]] = [bvec[piv], bvec[c]];
+      for (let r = 0; r < p; r++) if (r !== c) { const f = A[r][c] / A[c][c]; for (let k = c; k < p; k++) A[r][k] -= f * A[c][k]; bvec[r] -= f * bvec[c]; }
+    }
+    return { w: bvec.map((v, i) => v / A[i][i]), b: ym };
+  }
+  function optMse() {
+    const saved = [state.w, state.b], s = solveExact();
+    state.w = s.w; state.b = s.b; const m = evaluate().mse; [state.w, state.b] = saved; return m;
+  }
+  // coefficients in original units
+  function originalCoefs() {
+    const betas = state.idx.map((ci, j) => state.w[j] / cols[ci].ts);
+    const b0 = state.b - betas.reduce((t, b, j) => t + b * cols[state.idx[j]].tm, 0);
+    return { b0, betas };
+  }
+
+  // ---------- UI refresh ----------
+  function setStatus(msg, cls = "") { const s = $("status"); s.className = cls; s.innerHTML = msg; }
+  function refresh() {
+    const ev = evaluate(), { b0, betas } = originalCoefs(), p = state.idx.length;
+    $("iter").textContent = state.iter; $("pCount").textContent = p;
+    $("mse").textContent = fmt(ev.mse); $("rmse").textContent = fmt(ev.rmse); $("mae").textContent = fmt(ev.mae); $("mape").textContent = fmt(ev.mape, 2) + " %";
+    $("r2").textContent = fmt(ev.r2); $("ar2").textContent = fmt(ev.ar2);
+    const te = ev.test;
+    $("tMse").textContent = fmt(te.mse); $("tRmse").textContent = fmt(te.rmse); $("tMae").textContent = fmt(te.mae);
+    $("tMape").textContent = fmt(te.mape, 2) + " %"; $("tR2").textContent = fmt(te.r2);
+    $("nTr2").textContent = nTr; $("nTe2").textContent = nTe;
+    const q = te.rmse / Math.max(ev.rmse, 1e-9), gap = $("gap");
+    if (state.iter === 0 && !state.converged) { gap.className = ""; gap.textContent = "Train a model to compare train vs. test."; }
+    else if (q > 1.25) { gap.className = "bad"; gap.innerHTML = `⚠️ Test RMSE is <b>${q.toFixed(2)}×</b> the train RMSE — the model fits the rows it trained on better than new rows (overfitting). Try fewer/cleaner features or a bigger train ratio.`; }
+    else { gap.className = ""; gap.innerHTML = `✅ Test RMSE is about <b>${q.toFixed(2)}×</b> the train RMSE — the model generalizes reasonably.`; }
+    $("ratioVal").textContent = `${ratio} % / ${100 - ratio} %`; $("nTrain").textContent = nTr; $("nTest").textContent = nTe;
+    $("barTrain").style.width = nTr + "%"; $("barTest").style.width = nTe + "%";
+    let eq = "ŷ = " + fmt(b0, 3);
+    betas.forEach((b, j) => eq += ` ${sgn(b)} ${fmt(Math.abs(b), 3)}·${cols[state.idx[j]].label}`);
+    $("equation").textContent = eq;
+    let t = "<tr><th>coef</th><th>feature</th><th>β (feature units)</th><th>std. β</th><th>r with y</th></tr>";
+    t += `<tr><td>β₀</td><td>intercept</td><td>${fmt(b0)}</td><td>–</td><td>–</td></tr>`;
+    betas.forEach((b, j) => {
+      const c = cols[state.idx[j]];
+      t += `<tr><td>β${sub(j + 1)}</td><td>${c.label}</td><td>${fmt(b)}</td><td>${fmt(state.w[j] / ys)}</td><td class="${c.r >= 0 ? "pos" : "neg"}">${state.idx[j] === YI ? "1.000" : fmt(c.r)}</td></tr>`;
+    });
+    $("coefTable").innerHTML = t;
+    $("optMse").textContent = fmt(optMse());
+    drawLoss(); if (state.tab === 2) drawCorr();
+  }
+  function drawLoss() {
+    lx.clearRect(0, 0, LW, LH);
+    const P = { l: 52, r: 10, t: 10, b: 24 }, hist = state.history, hT = state.histTest, log = $("logLoss").checked;
+    lx.font = "11px system-ui, sans-serif"; lx.fillStyle = "#6b7280"; lx.strokeStyle = "#9ca3af";
+    lx.strokeRect(P.l, P.t, LW - P.l - P.r, LH - P.t - P.b);
+    if (!hist.length || !hist.every(isFinite)) {
+      lx.textAlign = "center"; lx.textBaseline = "middle"; lx.fillText(hist.length ? "diverged" : "train the model to see the loss", LW / 2, LH / 2); return;
+    }
+    const opt = optMse(), f = v => log ? Math.log10(Math.max(v, 1e-6)) : v;
+    let lo = Math.min(Math.min(...hist.map(f), ...hT.map(f)), f(opt)), hi = Math.max(...hist.map(f), ...hT.map(f));
+    if (!log) lo = Math.min(lo, 0);
+    if (hi - lo < 1e-9) hi = lo + 1;
+    const n = hist.length, span = Math.max(n - 1, 1);
+    const X = i => P.l + i / span * (LW - P.l - P.r), Yp = v => LH - P.b - (f(v) - lo) / (hi - lo) * (LH - P.t - P.b);
+    lx.textAlign = "right"; lx.textBaseline = "middle";
+    const lab = v => log ? "10^" + v.toFixed(1) : fmt(v, 1);
+    lx.fillText(lab(hi), P.l - 5, P.t + 4); lx.fillText(lab(lo), P.l - 5, LH - P.b - 4);
+    lx.textAlign = "left"; lx.textBaseline = "top"; lx.fillText("0", P.l, LH - P.b + 6);
+    lx.textAlign = "right"; lx.fillText("iter " + (n - 1), LW - P.r, LH - P.b + 6);
+    lx.strokeStyle = "#9333ea"; lx.setLineDash([5, 4]); lx.beginPath();
+    lx.moveTo(P.l, Yp(opt)); lx.lineTo(LW - P.r, Yp(opt)); lx.stroke(); lx.setLineDash([]);
+    const stride = Math.max(1, Math.floor(n / 600));
+    lx.strokeStyle = "#2563eb"; lx.lineWidth = 2; lx.beginPath();
+    for (let i = 0; i < n; i += stride) i ? lx.lineTo(X(i), Yp(hist[i])) : lx.moveTo(X(i), Yp(hist[i]));
+    lx.lineTo(X(n - 1), Yp(hist[n - 1])); lx.stroke();
+    lx.strokeStyle = "#d97706"; lx.beginPath();
+    for (let i = 0; i < hT.length; i += stride) i ? lx.lineTo(X(i), Yp(hT[i])) : lx.moveTo(X(i), Yp(hT[i]));
+    lx.lineTo(X(hT.length - 1), Yp(hT[hT.length - 1])); lx.stroke(); lx.lineWidth = 1;
+  }
+
+  // ---------- training ----------
+  function resetModel() {
+    stop(); prepare();
+    state.w = Array(state.idx.length).fill(0); state.b = 0; state.iter = 0; state.converged = false; state.diverged = false;
+    { const e0 = evaluate(); state.history = [e0.mse]; state.histTest = [e0.test.mse]; }
+    refresh();
+  }
+  function selectionChanged() {
+    paintTable(); resetModel();
+    const leak = state.sel.has(YI), idc = state.sel.has(0);
+    if (leak) setStatus("⚠️ You selected <b>y</b> as a feature — that is <b>data leakage</b>: the model just copies the answer (R² → 1). Never do this in real life.", "warn");
+    else if (idc) setStatus("ℹ️ <b>id</b> is only a row number. A good model should give it almost no weight — check its coefficient.", "warn");
+    else setStatus(state.sel.size ? "Ready. Press <b>Train</b> or <b>Step</b>." : "No features selected → the model can only predict the mean of y (β₀ only).");
+  }
+  function step() {
+    const { g, gb } = gradient();
+    for (let j = 0; j < g.length; j++) state.w[j] -= state.lr * g[j];
+    state.b -= state.lr * gb; state.iter++;
+    const e1 = evaluate(), mse = e1.mse; state.history.push(mse); state.histTest.push(e1.test.mse);
+    if (!isFinite(mse) || mse > 1e12) { state.diverged = true; stop(); setStatus("💥 Diverged — learning rate too large. Press <b>Reset</b> and lower α.", "err"); return false; }
+    if (Math.hypot(gb, ...g) < 1e-3 || state.iter >= 50000) { state.converged = true; stop(); onConverged("Converged"); return false; }
+    return true;
+  }
+  function onConverged(word) {
+    const ev = evaluate();
+    setStatus(`✅ ${word}: Train RMSE = ${fmt(ev.rmse, 2)}, <b>Test RMSE = ${fmt(ev.test.rmse, 2)}</b>, Adj. R² = ${fmt(ev.ar2)}.`, "ok");
+    logRun(ev);
+  }
+  function frame() {
+    if (!state.playing) return;
+    let ok = true; for (let i = 0; i < +$("spSlider").value && ok; i++) ok = step();
+    if (ok) setStatus(`Training… MSE = ${fmt(state.history[state.history.length - 1])}`);
+    refresh(); if (state.playing) requestAnimationFrame(frame);
+  }
+  function play() { setTab(2); if (state.converged || state.diverged) resetModel(); state.playing = true; $("playBtn").textContent = "⏸ Pause"; requestAnimationFrame(frame); }
+  function stop() { state.playing = false; $("playBtn").textContent = "▶ Train"; }
+
+  $("playBtn").onclick = () => state.playing ? (stop(), setStatus("Paused.")) : play();
+  $("stepBtn").onclick = () => { stop(); setTab(2); if (state.converged || state.diverged) resetModel(); if (step()) setStatus(`Step ${state.iter}. MSE = ${fmt(state.history[state.history.length - 1])}`); refresh(); };
+  $("solveBtn").onclick = () => {
+    stop(); setTab(2); const s = solveExact(); state.w = s.w; state.b = s.b; state.iter++; { const e1 = evaluate(); state.history.push(e1.mse); state.histTest.push(e1.test.mse); } state.converged = true;
+    refresh(); onConverged("Solved with the normal equation");
+  };
+  $("resetBtn").onclick = () => { resetModel(); setStatus("Model reset to zeros."); };
+  $("lrSlider").oninput = e => { state.lr = +e.target.value; $("lrVal").textContent = state.lr.toFixed(3); };
+  $("spSlider").oninput = e => $("spVal").textContent = e.target.value;
+  $("logLoss").onchange = drawLoss;
+
+  // ---------- comparison table ----------
+  const runs = new Map();
+  function logRun(ev) {
+    const key = state.idx.map(i => i + (cols[i].log ? "L" : "")).join(",") + "|" + ratio + "|" + splitId, names = state.idx.map(i => cols[i].label), te = ev.test;
+    runs.set(key, { names: names.length ? names.join(", ") : "(none – mean only)", p: names.length, ratio, split: splitId,
+      rmse: ev.rmse, mae: ev.mae, mape: ev.mape, ar2: ev.ar2, tmae: te.mae, trmse: te.rmse, tmape: te.mape, tr2: te.r2 });
+    renderRuns();
+  }
+  function renderRuns() {
+    const list = [...runs.values()], cur = list.filter(r => r.split === splitId);
+    const best = cur.length ? Math.min(...cur.map(r => r.tmae)) : NaN;
+    let t = "<tr><th>features</th><th>train %</th><th>p</th><th>Train MAE</th><th>Test MAE</th><th>Train MAPE</th><th>Test MAPE</th></tr>";
+    list.forEach(r => t += `<tr class="${r.split !== splitId ? "stale" : r.tmae === best ? "best" : ""}"><td>${r.names}</td><td>${r.ratio}%</td><td>${r.p}</td><td>${fmt(r.mae, 2)}</td><td>${fmt(r.tmae, 2)}</td><td>${fmt(r.mape, 1)}%</td><td>${fmt(r.tmape, 1)}%</td></tr>`);
+    $("cmpTable").innerHTML = list.length ? t : "<tr><td style='color:var(--muted)'>No runs yet — train a model to add a row.</td></tr>";
+  }
+  function splitChanged() {
+    splitId++; applySplit(); paintRows(); resetModel(); drawCorr();
+    setStatus("Split changed — the model was reset. Train again to see how train and test errors differ.");
+    renderRuns();
+  }
+  $("ratioSlider").oninput = e => { ratio = +e.target.value; splitChanged(); };
+  $("resplit").onclick = () => { for (let i = 0; i < N; i++) keys[i] = Math.random(); splitChanged(); };
+  $("cmpClear").onclick = () => { runs.clear(); renderRuns(); };
+
+  // ---------- init ----------
+  const layout = () => document.documentElement.style.setProperty("--hh", $("top").offsetHeight + "px");
+  window.addEventListener("resize", () => { layout(); resize(); });
+  if (window.ResizeObserver) { new ResizeObserver(resize).observe(cc); }
+  buildTable(); cols.forEach((c, i) => updateHeader(i)); paintTable(); renderRuns(); layout();
+  state.sel = new Set(); selectionChanged();
+  resize();
+  window.addEventListener("load", () => { layout(); resize(); });
+})();
+</script>
+</body>
+</html>
