@@ -51,6 +51,7 @@ A course in five topics for engineering students who are new to data science. Ea
 * **Notebooks**
   * [Demo · Train–test split, overfitting and leakage](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/nb-03-machine-learning.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/nb-03-machine-learning.ipynb)
   * [Exercises · Train–test split (empty code cells)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/ex-03-machine-learning.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/ex-03-machine-learning.ipynb)
+  * [Solutions · Train–test split](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/sol-03-machine-learning.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/sol-03-machine-learning.ipynb)
 
 ---
 
@@ -88,6 +89,7 @@ A course in five topics for engineering students who are new to data science. Ea
 * **Notebooks**
   * [Demo · RUL, degradation, early warning and costs](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/nb-05-predictive-maintenance.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/nb-05-predictive-maintenance.ipynb)
   * [Exercises · Predict RUL from selected sensors (empty code cells)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/ex-05-predictive-maintenance.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/ex-05-predictive-maintenance.ipynb)
+  * [Solutions · Predict RUL from selected sensors](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/sol-05-predictive-maintenance.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/sol-05-predictive-maintenance.ipynb)
 
 ---
 
@@ -142,7 +144,7 @@ learnings/
     ├── lm101.html  corr101.html  lm201.html  lm301.html  lm302.html
     ├── lm401.html  lm501.html  lm502.html  lm503.html  lm504.html
     ├── data/                          CSV datasets
-    └── notebooks/                     Jupyter demos (nb-*) and exercises (ex-*)
+    └── notebooks/                     Jupyter demos (nb-*), exercises (ex-*) and solutions (sol-*)
 ```
 
 ---
