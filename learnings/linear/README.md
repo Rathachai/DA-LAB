@@ -2,7 +2,7 @@
 
 A collection of browser-based, zero-install simulators that teach core data-analytics and machine-learning concepts through hands-on experimentation. Every lab is a single self-contained HTML file (HTML + CSS + JavaScript), is responsive on desktop and mobile, and is written for engineering students who are new to data science.
 
-**Live site:** <https://rathachai.github.io/DA-LAB/learnings/>
+**Live site:** <https://rathachai.github.io/DA-LAB/learnings/linear/>
 
 ---
 
@@ -59,8 +59,8 @@ Combine feature selection with honest, held-out evaluation.
 
 ```
 learnings/
-├── README.md
 └── linear/
+    ├── README.md
     ├── lm101.html
     ├── corr101.html
     ├── lm201.html
