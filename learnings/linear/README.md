@@ -47,11 +47,11 @@ A course in five topics for engineering students who are new to data science. Ea
 * **Data**
   * [lm301_points.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm301_points.csv) — 40 points with a 70 / 30 split · `id, x, y, split`
   * [lm302_data.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm302_data.csv) — the LM201 table plus `split`
-  * [quiz03_data.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/quiz03_data.csv) — quiz data for `ex-03` · `id, x1…x5, y` · 150 rows
+  * [quiz03_data.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/quiz03_data.csv) — quiz data for `qz-03` · `id, x1…x5, y` · 200 rows (`x2` needs a log)
 * **Notebooks**
   * [Demo · Train–test split, overfitting and leakage](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/nb-03-machine-learning.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/nb-03-machine-learning.ipynb)
-  * [Exercises · Train–test split (empty code cells)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/ex-03-machine-learning.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/ex-03-machine-learning.ipynb)
-  * [Solutions · Train–test split](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/sol-03-machine-learning.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/sol-03-machine-learning.ipynb)
+  * [Quiz · Choose X or ln_X, split and predict (empty code cells)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/qz-03-machine-learning.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/qz-03-machine-learning.ipynb)
+  * [Solutions · Choose X or ln_X, split and predict](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/sol-03-machine-learning.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/sol-03-machine-learning.ipynb)
 
 ---
 
@@ -85,10 +85,10 @@ A course in five topics for engineering students who are new to data science. Ea
   * [lm502_degradation.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm502_degradation.csv) — five degradation patterns · `pattern, t, health_true, health_sensor, failure_time`
   * [lm503_signals.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm503_signals.csv) — five fault scenarios · `scenario, t, signal, is_fault`
   * [lm504_fleet.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/lm504_fleet.csv) — 200 machines, actual and predicted RUL · `machine_id, actual_rul, predicted_*`
-  * [quiz05_sensors.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/quiz05_sensors.csv) — quiz data for `ex-05` · `id, machine, s1…s6, y` (RUL, hours) · 1,000 rows
+  * [quiz05_sensors.csv](https://rathachai.github.io/DA-LAB/learnings/linear/data/quiz05_sensors.csv) — quiz data for `qz-05` · `id, machine, s1…s6, y` (RUL, hours) · 1,000 rows
 * **Notebooks**
   * [Demo · RUL, degradation, early warning and costs](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/nb-05-predictive-maintenance.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/nb-05-predictive-maintenance.ipynb)
-  * [Exercises · Predict RUL from selected sensors (empty code cells)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/ex-05-predictive-maintenance.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/ex-05-predictive-maintenance.ipynb)
+  * [Quiz · Predict RUL from selected sensors (empty code cells)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/qz-05-predictive-maintenance.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/qz-05-predictive-maintenance.ipynb)
   * [Solutions · Predict RUL from selected sensors](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/sol-05-predictive-maintenance.ipynb) — [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Rathachai/DA-LAB/blob/gh-pages/learnings/linear/notebooks/sol-05-predictive-maintenance.ipynb)
 
 ---
@@ -144,7 +144,7 @@ learnings/
     ├── lm101.html  corr101.html  lm201.html  lm301.html  lm302.html
     ├── lm401.html  lm501.html  lm502.html  lm503.html  lm504.html
     ├── data/                          CSV datasets
-    └── notebooks/                     Jupyter demos (nb-*), exercises (ex-*) and solutions (sol-*)
+    └── notebooks/                     Jupyter demos (nb-*), quizzes (qz-*) and solutions (sol-*)
 ```
 
 ---
