@@ -15,6 +15,7 @@ A collection of browser-based, zero-install simulators that teach core data-anal
 | **LM201** | Feature selection for linear models | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm201.html) |
 | **LM301** | Train–test split | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm301.html) |
 | **LM302** | Train–test split with feature selection | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm302.html) |
+| **LM401** | Time series with sliding windows | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm401.html) |
 
 ### LM101 · Linear Regression Simulator
 Build intuition for how a straight line is fitted to data.
@@ -48,6 +49,15 @@ Combine feature selection with honest, held-out evaluation.
 - Compare train and test MAE and MAPE across feature sets and split ratios to spot overfitting.
 - Toggle train/test points and residuals on the charts; test points are shown as diamonds.
 
+### LM401 · Time Series with Linear Models
+Turn a time series into a supervised-learning problem and forecast it with a linear (autoregressive) model.
+- Pick from ten 200-point patterns (sine, trend, trend + season, random walk, AR(1), level shifts, damped wave, exponential, sawtooth, white noise) and set the noise level.
+- Click the line and drag it up or down — neighbouring points follow smoothly, fading out with distance.
+- Choose a sliding-window size (up to 10) and inspect the resulting table of `x₁ … x_w → y`, sliding by one step.
+- Split chronologically or randomly (10–90 %), then train with gradient descent or solve directly.
+- Compare train and test errors (MAE, RMSE, MAPE, MSE, R²) against a naive baseline. In a chronological split the test period is evaluated two ways: **chronological** (each prediction built from the model's earlier predictions) and **using actual data** (one step ahead).
+- Read the chart: train predictions (red, 1 px), test predictions using actual data (red, 2 px) and the chronological multi-step test forecast (red dashed, 2 px).
+
 ---
 
 ## Using the Labs
@@ -65,7 +75,8 @@ learnings/
     ├── corr101.html
     ├── lm201.html
     ├── lm301.html
-    └── lm302.html
+    ├── lm302.html
+    └── lm401.html
 ```
 
 ---

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LM401 – Time Series with Linear Models</title>
+<link rel="icon" type="image/svg+xml" href="https://rathachai.github.io/assets/favicon.svg">
+<style>
+:root{
+  --bg:#f4f6fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#2563eb; --brand2:#1d4ed8; --accent:#f59e0b; --pos:#0f766e; --neg:#dc2626; --test:#d97706; --fc:#059669;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;min-height:100vh;font-size:15px;line-height:1.45}
+
+header{position:relative;color:#fff;background:#1e3a8a url("https://rathachai.github.io/images/banner.jpg") center center/cover no-repeat;flex:0 0 auto}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.82),rgba(15,23,42,.45))}
+.head-inner{position:relative;padding:8px 20px;max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{height:24px;width:auto;display:block}
+h1{margin:0;font-size:clamp(17px,2.4vw,22px);font-weight:700;line-height:1.2}
+header p{margin:2px 0 0;max-width:720px;font-size:12.5px;opacity:.95;line-height:1.35}
+.credit{font-size:12px;color:#e5e7eb;text-align:right;white-space:nowrap;opacity:.9}
+.credit a{color:#fff;font-weight:600;text-decoration:none}
+.credit a:hover{text-decoration:underline}
+
+main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1.1fr .9fr;gap:16px;padding:16px;max-width:1400px;width:100%;margin:0 auto}
+.pane{overflow-y:auto;min-height:0;padding-right:4px;display:flex;flex-direction:column;gap:14px;height:calc(100vh - var(--hh,70px) - 32px);min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
+.card h2{margin:0 0 8px;font-size:16px}
+.card h2 small{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+.pane-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 -4px}
+
+canvas{display:block;width:100%;border-radius:8px;background:#fff;border:1px solid var(--line)}
+#chart{aspect-ratio:16/9;touch-action:none;cursor:default}
+#lossChart{aspect-ratio:16/8}
+
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.row label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.field{display:flex;flex-direction:column;gap:2px;flex:1 1 150px;min-width:130px}
+.field .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.field .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--brand)}
+button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer;transition:.12s}
+button:hover{border-color:var(--brand);color:var(--brand)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.primary:hover{background:var(--brand2);color:#fff}
+button.warn{background:var(--accent);border-color:var(--accent);color:#fff}
+button.small{padding:4px 8px;font-size:12.5px}
+button.on{background:#dbeafe;border-color:var(--brand);color:var(--brand2);font-weight:600}
+.patterns{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.patterns button{padding:7px 6px;font-size:13px}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:4px}
+.seg{display:inline-flex;gap:6px}
+
+.splitbar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:8px 0 2px;background:#eee}
+#barTrain{background:#2563eb;transition:width .15s}#barTest{background:#d97706;transition:width .15s}
+
+.tablewrap{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table.data{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+table.data th,table.data td{padding:3px 8px;text-align:right;border-bottom:1px solid #f0f1f4;white-space:nowrap}
+table.data thead th{position:sticky;top:0;background:#f8fafc;z-index:2;border-bottom:2px solid var(--line);font-weight:700}
+table.data thead th small{display:block;font-weight:400;color:var(--muted);font-size:10.5px}
+table.data tbody tr{cursor:pointer}
+table.data tbody tr:hover td{background:#eff6ff}
+table.data tbody tr.te td{background:#fff4d6}
+table.data tbody tr.sel td{background:#bfdbfe !important;font-weight:700}
+table.data td.y{font-weight:700;color:#b45309}
+
+.equation{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(13px,2vw,16px);font-weight:600;color:var(--brand);padding:6px 2px;word-break:break-word;line-height:1.6}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kv .k{font-size:12px;color:var(--muted)}
+.kv .v{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+#status{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+#status.ok{background:#ecfdf5;color:#065f46}
+#status.err{background:#fef2f2;color:#991b1b}
+#status.warn{background:#fffbeb;color:#92400e}
+#gap{font-size:13px;padding:8px 10px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-top:10px}
+#gap.bad{background:#fffbeb;color:#92400e}
+table.mini{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+table.mini th,table.mini td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+table.mini th:first-child,table.mini td:first-child{text-align:left}
+table.mini th{color:var(--muted);font-weight:600;font-size:12px}
+table.mini td.tr{color:#1d4ed8;font-weight:700}table.mini td.te{color:#b45309;font-weight:700}
+.scroll-x{overflow-x:auto}
+.card ol,.card ul{margin:6px 0 0;padding-left:20px;font-size:13.5px}
+.card code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12.5px}
+
+@media (max-width:860px){
+  main{display:block;padding:12px}
+  .pane{height:auto;overflow:visible;padding:0}
+  .pane + .pane{margin-top:14px}
+  .head-inner{padding:8px 14px;flex-direction:column;align-items:flex-start;gap:4px}
+  .credit{text-align:left;white-space:normal;font-size:11.5px}
+}
+</style>
+</head>
+<body>
+
+<header id="top">
+  <div class="head-inner">
+    <div>
+      <div class="brand">
+        <img src="https://rathachai.github.io/assets/logo.svg" alt="Logo">
+        <h1>LM401 · Time Series with Linear Models</h1>
+      </div>
+      <p>Shape a 200-point time series, turn it into a sliding-window table (x₁…x<sub>w</sub> → y), split it into train and test, and watch a linear model predict the next value.</p>
+    </div>
+    <div class="credit">Powered by: Sonnet &nbsp;|&nbsp; AI Whisperer: <a href="https://rathachai.github.io" target="_blank" rel="noopener">rathachai.github.io</a></div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ LEFT ============ -->
+  <section class="pane">
+    <p class="pane-title">① Time series &amp; windows</p>
+
+    <div class="card">
+      <h2>Time series <small>200 points</small></h2>
+      <canvas id="chart" aria-label="Time series chart"></canvas>
+      <div class="legend">
+        <span><i style="border-color:#475569"></i>actual</span>
+        <span><i style="border-color:#dc2626;border-top-width:1px"></i>prediction on train</span>
+        <span><i style="border-color:#dc2626;border-top-style:dashed"></i>test · chronological (from earlier predictions)</span>
+        <span><i style="border-color:#dc2626"></i>test · uses actual data (one step ahead)</span>
+        <span style="color:#b45309">◆ test points · shaded = test period</span>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="showPred" checked> prediction line</label>
+        <label><input type="checkbox" id="showActual" checked> actual line</label>
+      </div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>edit spread (σ, in points)</span><b id="spreadVal">8</b></div>
+          <input type="range" id="spreadSlider" min="1" max="40" step="1" value="8">
+        </div>
+        <button id="resetEdits">↺ Reset edits</button>
+      </div>
+      <p class="hint"><b>Click on the line and drag up or down.</b> The point you grab follows your pointer; its neighbours follow smoothly, fading out with distance. (On touch screens the chart captures touch — scroll by touching outside it.)</p>
+    </div>
+
+    <div class="card">
+      <h2>Choose a pattern</h2>
+      <div class="patterns" id="patterns"></div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>noise (σ)</span><b id="noiseVal">3.0</b></div>
+          <input type="range" id="noiseSlider" min="0" max="15" step="0.5" value="3">
+        </div>
+        <button class="primary" id="regen">🎲 Regenerate</button>
+      </div>
+      <p class="hint" id="patDesc"></p>
+      <p class="hint">Changing the pattern or noise discards manual edits.</p>
+    </div>
+
+    <div class="card">
+      <h2>Sliding window <small>x₁ … x<sub>w</sub> → y</small></h2>
+      <div class="field">
+        <div class="lab"><span>window size (w)</span><b id="wVal">5</b></div>
+        <input type="range" id="wSlider" min="1" max="10" step="1" value="5">
+      </div>
+      <p class="hint" id="winDesc"></p>
+    </div>
+
+    <div class="card">
+      <h2>Train / test split</h2>
+      <div class="row" style="margin-top:0">
+        <div class="seg" role="group">
+          <button id="modeChrono" class="on">⏩ Chronological</button>
+          <button id="modeRandom">🔀 Random</button>
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <div class="lab"><span>train ratio</span><b id="ratioVal">70 % / 30 %</b></div>
+        <input type="range" id="ratioSlider" min="10" max="90" step="1" value="70">
+      </div>
+      <div class="splitbar"><div id="barTrain" style="width:70%"></div><div id="barTest" style="width:30%"></div></div>
+      <div class="row">
+        <button class="primary" id="resplit" disabled>🔀 Random split again</button>
+        <span class="hint" style="margin:0"><span style="color:#2563eb">●</span> train <b id="nTrain">0</b> &nbsp;<span style="color:#d97706">◆</span> test <b id="nTest">0</b></span>
+      </div>
+      <p class="hint" id="splitHint"></p>
+    </div>
+
+    <div class="card">
+      <h2>Window table <small id="tblInfo"></small></h2>
+      <div class="tablewrap"><table class="data" id="table"></table></div>
+      <p class="hint">Each row is one window: <b>x₁</b> is the oldest value, <b>x<sub>w</sub></b> the most recent, and <b>y</b> the value to predict. The window slides forward by 1 for the next row. Amber rows are test rows. Click a row to highlight it on the chart.</p>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT ============ -->
+  <section class="pane">
+    <p class="pane-title">② Train a linear model</p>
+
+    <div class="card">
+      <h2>Model equation</h2>
+      <div class="equation" id="equation">y(t) = β₀</div>
+      <div class="scroll-x"><table class="mini" id="coefTable"></table></div>
+    </div>
+
+    <div class="card">
+      <h2>Gradient descent <small>uses train rows only</small></h2>
+      <div class="row" style="margin-top:0">
+        <button id="stepBtn" class="primary">⏭ Step</button>
+        <button id="playBtn" class="warn">▶ Train</button>
+        <button id="solveBtn">⚡ Solve instantly</button>
+        <button id="resetBtn">↺ Reset</button>
+      </div>
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span>learning rate (α)</span><b id="lrVal">0.050</b></div>
+          <input type="range" id="lrSlider" min="0.005" max="0.08" step="0.005" value="0.05">
+        </div>
+        <div class="field">
+          <div class="lab"><span>speed (steps / frame)</span><b id="spVal">20</b></div>
+          <input type="range" id="spSlider" min="1" max="200" step="1" value="20">
+        </div>
+      </div>
+      <div class="pair" style="margin-top:10px">
+        <div class="kv"><div class="k">iteration</div><div class="v" id="iter">0</div></div>
+        <div class="kv"><div class="k">features used</div><div class="v" id="pCount">0</div></div>
+      </div>
+      <div id="status">Press <b>Train</b> or <b>Solve instantly</b> to fit the model and draw the prediction line.</div>
+      <p class="hint">Neighbouring values in a time series are highly correlated, so gradient descent can be slow for large windows — <b>Solve instantly</b> jumps straight to the best answer.</p>
+    </div>
+
+    <div class="card">
+      <h2>Performance <small>train vs. test · lower is better (R²: higher)</small></h2>
+      <div class="scroll-x"><table class="mini">
+        <tr><th>metric</th><th>Train</th><th>Test<br><small>uses actual data (solid)</small></th><th>Test<br><small>chronological (dashed)</small></th></tr>
+        <tr><td>MAE</td><td class="tr" id="mae">–</td><td class="te" id="amae">–</td><td class="te" id="tmae">–</td></tr>
+        <tr><td>RMSE</td><td class="tr" id="rmse">–</td><td class="te" id="armse">–</td><td class="te" id="trmse">–</td></tr>
+        <tr><td>MAPE</td><td class="tr" id="mape">–</td><td class="te" id="amape">–</td><td class="te" id="tmape">–</td></tr>
+        <tr><td>MSE (loss)</td><td class="tr" id="mse">–</td><td class="te" id="amse">–</td><td class="te" id="tmse">–</td></tr>
+        <tr><td>R²</td><td class="tr" id="r2">–</td><td class="te" id="ar2">–</td><td class="te" id="tr2">–</td></tr>
+        <tr><td style="color:var(--muted)">Naive baseline MAE <small>(repeat last known value)</small></td><td id="bmae" style="color:var(--muted)">–</td><td id="abmae" style="color:var(--muted)">–</td><td id="tbmae" style="color:var(--muted)">–</td></tr>
+      </table></div>
+      <div id="gap">Train a model to compare train vs. test.</div>
+      <p class="hint" id="fcInfo"></p>
+    </div>
+
+    <div class="card">
+      <h2>Loss curve <small>MSE vs. iteration</small></h2>
+      <canvas id="lossChart" aria-label="Loss curve"></canvas>
+      <div class="row">
+        <label><input type="checkbox" id="logLoss"> log scale</label>
+        <span class="hint" style="margin:0"><span style="color:#2563eb">■</span> train &nbsp;<span style="color:#d97706">■</span> test &nbsp;<span style="color:#9333ea">╌</span> best train MSE: <b id="optMse">–</b></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>How it works</h2>
+      <ol>
+        <li><b>Window:</b> turn the series into a table — each row holds the last <i>w</i> values (x₁…x<sub>w</sub>) and the value that follows (y).</li>
+        <li><b>Split:</b> keep some rows aside as a test set. For time series, a <b>chronological</b> split (train on the past, test on the future) mimics real forecasting; a <b>random</b> split lets the model "peek" at the future.</li>
+        <li><b>Fit:</b> a linear model <code>y = β₀ + β₁x₁ + … + β<sub>w</sub>x<sub>w</sub></code> is an <i>autoregressive</i> model — it predicts from its own past.</li>
+        <li><b>Predict:</b> the red solid line (train) and red dashed line (test) are its predictions: on train rows each uses real past values (one step ahead). In a chronological split the test line is built from the model's <b>own earlier predictions</b> (multi-step), so errors can pile up.</li>
+      </ol>
+      <p class="hint">Try: a noisy sine with w = 1 vs. w = 10; a random walk (hard to beat the naive baseline); then drag a bump into the test period and see how the error reacts.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const N = 200, YMIN = 0, YMAX = 100;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / Math.max(1, a.length - 1)) || 1; };
+  const fmt = (v, d = 3) => !isFinite(v) ? "∞" : Math.abs(v) >= 1e6 ? v.toExponential(2) : v.toFixed(Math.abs(v) >= 100 ? 1 : d);
+  const sub = n => String(n).replace(/\d/g, d => "₀₁₂₃₄₅₆₇₈₉"[d]);
+  const sgn = v => v < 0 ? "−" : "+";
+
+  // ---------- patterns ----------
+  const PATTERNS = {
+    sine:   { label: "∿ Sine wave", noise: 2, desc: "A pure repeating cycle — easy to predict from a few past values.",
+              gen: () => Array.from({ length: N }, (_, t) => 50 + 30 * Math.sin(2 * Math.PI * t / 50)) },
+    trend:  { label: "↗ Linear trend", noise: 3, desc: "A steady upward drift plus noise.",
+              gen: () => Array.from({ length: N }, (_, t) => 15 + 0.4 * t) },
+    season: { label: "∿↗ Trend + season", noise: 3, desc: "A seasonal cycle riding on a rising trend.",
+              gen: () => Array.from({ length: N }, (_, t) => 25 + 0.2 * t + 15 * Math.sin(2 * Math.PI * t / 25)) },
+    walk:   { label: "🚶 Random walk", noise: 0, desc: "Each value = previous value + a random step. Hard to beat the 'repeat the last value' baseline.",
+              gen: () => { let v = 50; return Array.from({ length: N }, () => (v = clamp(v + gauss() * 3, 8, 92))); } },
+    ar1:    { label: "〰 Wandering (AR1)", noise: 0, desc: "Random but mean-reverting: today depends on yesterday, pulled back towards the middle.",
+              gen: () => { let v = 0; return Array.from({ length: N }, () => (v = 0.92 * v + gauss() * 5, 50 + v)); } },
+    step:   { label: "▁▇ Level shifts", noise: 2, desc: "Piece-wise constant levels with sudden jumps — a challenge for linear models at the jumps.",
+              gen: () => { const L = [30, 70, 45, 80, 35]; return Array.from({ length: N }, (_, t) => L[Math.floor(t / 40)]); } },
+    damped: { label: "◔ Damped wave", noise: 1.5, desc: "An oscillation that fades out over time.",
+              gen: () => Array.from({ length: N }, (_, t) => 50 + 42 * Math.exp(-t / 70) * Math.cos(2 * Math.PI * t / 30)) },
+    expo:   { label: "📈 Exponential", noise: 2, desc: "Growth that accelerates. A linear model of the past lags behind the curve.",
+              gen: () => Array.from({ length: N }, (_, t) => 6 + 4 * Math.exp(t * 0.0125 * 1.0)) },
+    saw:    { label: "⩘ Sawtooth", noise: 1.5, desc: "A ramp that resets every 40 points.",
+              gen: () => Array.from({ length: N }, (_, t) => 20 + 60 * ((t % 40) / 40)) },
+    noise:  { label: "▒ White noise", noise: 12, desc: "Pure randomness — nothing to learn. The best model can only predict the average.",
+              gen: () => Array.from({ length: N }, () => 50) }
+  };
+  const S = { key: "season", clean: [], unit: [], base: [], s: [], noise: 3, spread: 8, w: 5, ratio: 70, mode: "chrono",
+              keys: Array.from({ length: N }, () => Math.random()), sel: null };
+  const model = { w: [], b: 0, iter: 0, history: [], histTest: [], playing: false, lr: 0.05, converged: false, diverged: false, trained: false };
+
+  function makeBase() { S.base = S.clean.map((c, i) => clamp(c + S.noise * S.unit[i], YMIN + 1, YMAX - 1)); S.s = S.base.slice(); }
+  function generate() { S.clean = PATTERNS[S.key].gen(); S.unit = Array.from({ length: N }, gauss); makeBase(); }
+
+  // ---------- windows / samples / split ----------
+  let rows = [], nTr = 0, nTe = 0, fm = [], fs = [], ym = 0, kTrain = 0;
+  function buildSamples() {
+    const w = S.w; rows = [];
+    for (let t = w; t < N; t++) rows.push({ t, x: S.s.slice(t - w, t), y: S.s[t], test: false });
+    const n = rows.length; kTrain = clamp(Math.round(n * S.ratio / 100), 2, n - 1);
+    if (S.mode === "chrono") rows.forEach((r, i) => r.test = i >= kTrain);
+    else rows.map((r, i) => i).sort((a, b) => S.keys[rows[a].t] - S.keys[rows[b].t]).forEach((i, rank) => rows[i].test = rank >= kTrain);
+    const tr = rows.filter(r => !r.test); nTr = tr.length; nTe = n - nTr;
+    fm = []; fs = [];
+    for (let j = 0; j < w; j++) { const col = tr.map(r => r.x[j]); fm.push(mean(col)); fs.push(sd(col)); }
+    ym = mean(tr.map(r => r.y));
+    rows.forEach(r => r.z = r.x.map((v, j) => (v - fm[j]) / fs[j]));
+  }
+  const trainRows = () => rows.filter(r => !r.test), testRows = () => rows.filter(r => r.test);
+
+  // ---------- model math ----------
+  const predictRow = r => { let y = model.b; for (let j = 0; j < model.w.length; j++) y += model.w[j] * r.z[j]; return y; };
+  function evalSet(set, f = predictRow) {
+    if (!set.length) return null;
+    let se = 0, ae = 0, pe = 0, pn = 0; const my = mean(set.map(r => r.y));
+    set.forEach(r => { const e = r.y - f(r); se += e * e; ae += Math.abs(e); if (Math.abs(r.y) > 1e-6) { pe += Math.abs(e / r.y); pn++; } });
+    const n = set.length, mse = se / n, sst = set.reduce((t, r) => t + (r.y - my) ** 2, 0) / n;
+    return { mse, rmse: Math.sqrt(mse), mae: ae / n, mape: pn ? 100 * pe / pn : NaN, r2: sst > 1e-9 ? 1 - mse / sst : NaN };
+  }
+  function gradient() {
+    const tr = trainRows(), p = S.w, g = Array(p).fill(0); let gb = 0;
+    tr.forEach(r => { const e = r.y - predictRow(r); gb += -2 * e; for (let j = 0; j < p; j++) g[j] += -2 * r.z[j] * e; });
+    return { g: g.map(v => v / tr.length), gb: gb / tr.length };
+  }
+  function solveExact() {
+    const tr = trainRows(), p = S.w, n = tr.length, A = [], bv = [];
+    for (let a = 0; a < p; a++) {
+      A.push(Array.from({ length: p }, (_, b) => tr.reduce((t, r) => t + r.z[a] * r.z[b], 0) / n + (a === b ? 1e-8 : 0)));
+      bv.push(tr.reduce((t, r) => t + r.z[a] * (r.y - ym), 0) / n);
+    }
+    for (let c = 0; c < p; c++) {
+      let piv = c; for (let r = c + 1; r < p; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      [A[c], A[piv]] = [A[piv], A[c]]; [bv[c], bv[piv]] = [bv[piv], bv[c]];
+      for (let r = 0; r < p; r++) if (r !== c) { const f = A[r][c] / A[c][c]; for (let k = c; k < p; k++) A[r][k] -= f * A[c][k]; bv[r] -= f * bv[c]; }
+    }
+    return { w: bv.map((v, i) => v / A[i][i]), b: ym };
+  }
+  function optMse() { const sv = [model.w, model.b], s = solveExact(); model.w = s.w; model.b = s.b; const m = evalSet(trainRows()).mse; [model.w, model.b] = sv; return m; }
+  function coefs() {
+    const betas = model.w.map((w, j) => w / fs[j]);
+    return { b0: model.b - betas.reduce((t, b, j) => t + b * fm[j], 0), betas };
+  }
+  // multi-step forecast over the test period (chronological split only)
+  function forecast() {
+    if (S.mode !== "chrono" || !rows.length) return [];
+    const t0 = rows[kTrain].t, h = S.s.slice(0, t0), out = [];
+    for (let t = t0; t < N; t++) {
+      const win = h.slice(t - S.w, t), z = win.map((v, j) => (v - fm[j]) / fs[j]);
+      let y = model.b; for (let j = 0; j < S.w; j++) y += model.w[j] * z[j];
+      y = clamp(y, -50, 150); h.push(y); out.push({ t, y });
+    }
+    return out;
+  }
+
+  // test-period predictor: chronological → recursive (each step uses the model's own earlier predictions); random → one step ahead
+  function testPredictor() {
+    if (S.mode !== "chrono") return predictRow;
+    const m = new Map(forecast().map(p => [p.t, p.y])); return r => m.get(r.t);
+  }
+  // naive baseline for the test rows: chronological → repeat the last known train value; random → repeat the previous value
+  function baselineTest() {
+    if (S.mode !== "chrono") return r => r.x[S.w - 1];
+    const last = S.s[rows[kTrain].t - 1]; return () => last;
+  }
+
+  // ---------- chart ----------
+  const cv = $("chart"), cx = cv.getContext("2d"), lc = $("lossChart"), lx = lc.getContext("2d");
+  const PAD = { l: 36, r: 10, t: 10, b: 26 };
+  let W = 0, H = 0, LW = 0, LH = 0, hoverT = null, drag = null;
+  const sx = t => PAD.l + t / (N - 1) * (W - PAD.l - PAD.r);
+  const sy = v => H - PAD.b - (v - YMIN) / (YMAX - YMIN) * (H - PAD.t - PAD.b);
+  const ix = px => (px - PAD.l) / (W - PAD.l - PAD.r) * (N - 1);
+  const iy = py => YMIN + (H - PAD.b - py) / (H - PAD.t - PAD.b) * (YMAX - YMIN);
+  function fit(c, ctx) { const d = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight; c.width = Math.round(w * d); c.height = Math.round(h * d); ctx.setTransform(d, 0, 0, d, 0, 0); return [w, h]; }
+  function resize() { [W, H] = fit(cv, cx); [LW, LH] = fit(lc, lx); draw(); drawLoss(); }
+
+  function draw() {
+    cx.clearRect(0, 0, W, H); cx.font = "11px system-ui, sans-serif"; cx.textBaseline = "middle";
+    // test-period shading (chronological)
+    if (S.mode === "chrono" && rows.length) {
+      const x0 = sx(rows[kTrain].t - 0.5);
+      cx.fillStyle = "rgba(217,119,6,.10)"; cx.fillRect(x0, PAD.t, W - PAD.r - x0, H - PAD.t - PAD.b);
+      cx.fillStyle = "#b45309"; cx.textAlign = "left"; cx.fillText("test →", x0 + 4, PAD.t + 8);
+      cx.fillStyle = "#1d4ed8"; cx.textAlign = "right"; cx.fillText("← train", x0 - 4, PAD.t + 8);
+    }
+    cx.strokeStyle = "#eef0f4"; cx.fillStyle = "#6b7280"; cx.lineWidth = 1; cx.textAlign = "right";
+    for (let v = YMIN; v <= YMAX; v += 20) { cx.beginPath(); cx.moveTo(PAD.l, sy(v)); cx.lineTo(W - PAD.r, sy(v)); cx.stroke(); cx.fillText(v, PAD.l - 6, sy(v)); }
+    cx.textAlign = "center";
+    for (let t = 0; t < N; t += 20) { cx.beginPath(); cx.moveTo(sx(t), PAD.t); cx.lineTo(sx(t), H - PAD.b); cx.stroke(); cx.fillText(t, sx(t), H - PAD.b + 12); }
+    cx.fillText("t", W - PAD.r - 4, H - 6);
+    cx.strokeStyle = "#9ca3af"; cx.strokeRect(PAD.l, PAD.t, W - PAD.l - PAD.r, H - PAD.t - PAD.b);
+
+    cx.save(); cx.beginPath(); cx.rect(PAD.l, PAD.t, W - PAD.l - PAD.r, H - PAD.t - PAD.b); cx.clip();
+    // selected window highlight
+    if (S.sel != null && rows[S.sel]) {
+      const r = rows[S.sel];
+      cx.fillStyle = "rgba(37,99,235,.10)"; cx.fillRect(sx(r.t - S.w) - 4, PAD.t, sx(r.t - 1) - sx(r.t - S.w) + 8, H - PAD.t - PAD.b);
+      cx.fillStyle = "rgba(217,119,6,.18)"; cx.fillRect(sx(r.t) - 5, PAD.t, 10, H - PAD.t - PAD.b);
+    }
+    // drag influence band
+    if (drag) { const sg = S.spread; cx.fillStyle = "rgba(245,158,11,.12)"; cx.fillRect(sx(drag.t0 - 2 * sg), PAD.t, sx(drag.t0 + 2 * sg) - sx(drag.t0 - 2 * sg), H - PAD.t - PAD.b); }
+    if ($("showActual").checked) {
+      cx.strokeStyle = "#475569"; cx.lineWidth = 2; cx.beginPath();
+      S.s.forEach((v, t) => t ? cx.lineTo(sx(t), sy(v)) : cx.moveTo(sx(t), sy(v))); cx.stroke();
+    }
+    // predictions
+    if (model.trained && $("showPred").checked) {
+      // red solid 1px = train rows; red solid 2px = test rows using actual past data; red dashed 2px = test period chronological (recursive)
+      const py = rows.map(r => sy(clamp(predictRow(r), -50, 150)));
+      cx.strokeStyle = "#dc2626"; cx.lineWidth = 1; cx.beginPath();
+      for (let i = 1; i < rows.length; i++) if (!rows[i].test) { cx.moveTo(sx(rows[i - 1].t), py[i - 1]); cx.lineTo(sx(rows[i].t), py[i]); }
+      cx.stroke();
+      // test rows, one step ahead from ACTUAL past data: solid 2px
+      cx.lineWidth = 2; cx.beginPath();
+      for (let i = 1; i < rows.length; i++) if (rows[i].test) { cx.moveTo(sx(rows[i - 1].t), py[i - 1]); cx.lineTo(sx(rows[i].t), py[i]); }
+      cx.stroke();
+      // test period, chronological (recursive: built from earlier predictions): dashed 2px
+      if (S.mode === "chrono") {
+        const fc = forecast(); cx.setLineDash([6, 4]); cx.beginPath();
+        if (fc.length) { cx.moveTo(sx(rows[kTrain - 1].t), py[kTrain - 1]); fc.forEach(p => cx.lineTo(sx(p.t), sy(clamp(p.y, -50, 150)))); }
+        cx.stroke();
+      }
+      cx.setLineDash([]);
+      if (S.mode === "random") {   // mark test targets
+        cx.fillStyle = "rgba(217,119,6,.95)"; cx.strokeStyle = "#fff"; cx.lineWidth = 1;
+        rows.forEach(r => { if (!r.test) return; const x = sx(r.t), y = sy(r.y); cx.beginPath(); cx.moveTo(x, y - 4.5); cx.lineTo(x + 4.5, y); cx.lineTo(x, y + 4.5); cx.lineTo(x - 4.5, y); cx.closePath(); cx.fill(); cx.stroke(); });
+      }
+    }
+    // selected sample markers
+    if (S.sel != null && rows[S.sel]) {
+      const r = rows[S.sel]; cx.lineWidth = 2;
+      cx.strokeStyle = "#2563eb"; for (let t = r.t - S.w; t < r.t; t++) { cx.beginPath(); cx.arc(sx(t), sy(S.s[t]), 5, 0, 7); cx.stroke(); }
+      cx.strokeStyle = "#d97706"; cx.beginPath(); cx.arc(sx(r.t), sy(r.y), 6, 0, 7); cx.stroke();
+    }
+    // hover cursor
+    if (hoverT != null && !drag) { cx.strokeStyle = "#f59e0b"; cx.lineWidth = 2; cx.beginPath(); cx.arc(sx(hoverT), sy(S.s[hoverT]), 6, 0, 7); cx.stroke(); }
+    if (drag) { cx.fillStyle = "#f59e0b"; cx.beginPath(); cx.arc(sx(drag.t0), sy(S.s[drag.t0]), 6, 0, 7); cx.fill(); }
+    cx.restore(); cx.lineWidth = 1;
+  }
+
+  function drawLoss() {
+    lx.clearRect(0, 0, LW, LH);
+    const P = { l: 52, r: 10, t: 10, b: 24 }, hist = model.history, hT = model.histTest.length === hist.length && model.histTest.every(isFinite) ? model.histTest : [], log = $("logLoss").checked;
+    lx.font = "11px system-ui, sans-serif"; lx.fillStyle = "#6b7280"; lx.strokeStyle = "#9ca3af";
+    lx.strokeRect(P.l, P.t, LW - P.l - P.r, LH - P.t - P.b);
+    if (!hist.length || !hist.every(isFinite)) { lx.textAlign = "center"; lx.textBaseline = "middle"; lx.fillText(hist.length ? "diverged" : "train the model to see the loss", LW / 2, LH / 2); return; }
+    const opt = optMse(), f = v => log ? Math.log10(Math.max(v, 1e-6)) : v;
+    let lo = Math.min(...hist.map(f), ...hT.map(f), f(opt)), hi = Math.max(...hist.map(f), ...hT.map(f));
+    if (!log) lo = Math.min(lo, 0); if (hi - lo < 1e-9) hi = lo + 1;
+    const n = hist.length, span = Math.max(n - 1, 1), X = i => P.l + i / span * (LW - P.l - P.r), Yp = v => LH - P.b - (f(v) - lo) / (hi - lo) * (LH - P.t - P.b);
+    lx.textAlign = "right"; lx.textBaseline = "middle"; const lab = v => log ? "10^" + v.toFixed(1) : fmt(v, 1);
+    lx.fillText(lab(hi), P.l - 5, P.t + 4); lx.fillText(lab(lo), P.l - 5, LH - P.b - 4);
+    lx.textAlign = "left"; lx.textBaseline = "top"; lx.fillText("0", P.l, LH - P.b + 6); lx.textAlign = "right"; lx.fillText("iter " + (n - 1), LW - P.r, LH - P.b + 6);
+    lx.strokeStyle = "#9333ea"; lx.setLineDash([5, 4]); lx.beginPath(); lx.moveTo(P.l, Yp(opt)); lx.lineTo(LW - P.r, Yp(opt)); lx.stroke(); lx.setLineDash([]);
+    const stride = Math.max(1, Math.floor(n / 600));
+    const curve = (a, c) => { lx.strokeStyle = c; lx.lineWidth = 2; lx.beginPath(); for (let i = 0; i < n; i += stride) i ? lx.lineTo(X(i), Yp(a[i])) : lx.moveTo(X(i), Yp(a[i])); lx.lineTo(X(n - 1), Yp(a[n - 1])); lx.stroke(); };
+    curve(hist, "#2563eb"); if (hT.length) curve(hT, "#d97706"); lx.lineWidth = 1;
+  }
+
+  // ---------- table ----------
+  function buildTable() {
+    const w = S.w;
+    let h = "<thead><tr><th>t</th>";
+    for (let j = 0; j < w; j++) h += `<th>x${j + 1}<small>t−${w - j}</small></th>`;
+    h += "<th>y<small>t</small></th></tr></thead><tbody>";
+    rows.forEach((r, i) => { h += `<tr data-i="${i}" class="${r.test ? "te" : ""}${S.sel === i ? " sel" : ""}"><td>${r.t}</td>${r.x.map(v => `<td>${v.toFixed(1)}</td>`).join("")}<td class="y">${r.y.toFixed(1)}</td></tr>`; });
+    $("table").innerHTML = h + "</tbody>";
+    $("tblInfo").textContent = `${rows.length} windows (= 200 − ${w}) · ${nTr} train / ${nTe} test`;
+  }
+  $("table").addEventListener("click", e => {
+    const tr = e.target.closest("tr[data-i]"); if (!tr) return;
+    S.sel = S.sel === +tr.dataset.i ? null : +tr.dataset.i;
+    document.querySelectorAll("#table tr.sel").forEach(r => r.classList.remove("sel"));
+    if (S.sel != null) tr.classList.add("sel"); draw();
+  });
+
+  // ---------- refresh ----------
+  function setStatus(msg, cls = "") { const s = $("status"); s.className = cls; s.innerHTML = msg; }
+  function refresh() {
+    const tr = trainRows(), te = testRows(), a = evalSet(tr), b = evalSet(te, testPredictor()), p = S.w;
+    $("iter").textContent = model.iter; $("pCount").textContent = p;
+    const put = (pre, m) => { const k = (id, v) => $(pre + id).textContent = v;
+      if (!m) { ["mae", "rmse", "mape", "mse", "r2"].forEach(x => k(x, "–")); return; }
+      k("mae", fmt(m.mae)); k("rmse", fmt(m.rmse)); k("mse", fmt(m.mse)); k("r2", fmt(m.r2)); k("mape", isFinite(m.mape) ? fmt(m.mape, 2) + " %" : "n/a"); };
+    put("", a); put("t", S.mode === "chrono" ? b : null); put("a", evalSet(te, predictRow));
+    const base = evalSet(tr, r => r.x[S.w - 1]), baseT = evalSet(te, baselineTest());
+    $("bmae").textContent = base ? fmt(base.mae) : "–"; $("tbmae").textContent = S.mode === "chrono" && baseT ? fmt(baseT.mae) : "–";
+    { const ba = evalSet(te, r => r.x[S.w - 1]); $("abmae").textContent = ba ? fmt(ba.mae) : "–"; }
+    const gap = $("gap");
+    if (!model.trained) { gap.className = ""; gap.textContent = "Train a model to compare train vs. test."; }
+    else {
+      const q = b.rmse / Math.max(a.rmse, 1e-9), beat = b.mae < baseT.mae;
+      gap.className = q > 1.25 ? "bad" : "";
+      gap.innerHTML = (q > 1.25 ? `⚠️ Test RMSE is <b>${q.toFixed(2)}×</b> the train RMSE — the model does worse on unseen data. ` : `✅ Test RMSE ≈ <b>${q.toFixed(2)}×</b> train RMSE. `) +
+        (beat ? "The model beats the naive baseline on the test rows." : "The model does <b>not</b> beat the naive 'repeat the last value' baseline on the test rows.");
+    }
+    $("fcInfo").textContent = S.mode === "chrono"
+      ? "Chronological split: in the test period each prediction is built from the model's own earlier predictions (multi-step), so errors can accumulate. The naive baseline repeats the last known train value."
+      : "Random split: test predictions use the real previous values (one step ahead). The naive baseline repeats the previous value.";
+    const { b0, betas } = coefs();
+    let eq = "y(t) = " + fmt(b0, 3); betas.forEach((v, j) => eq += ` ${sgn(v)} ${fmt(Math.abs(v), 3)}·x${j + 1}`);
+    $("equation").textContent = eq;
+    let t = "<tr><th>coef</th><th>feature</th><th>meaning</th><th>β</th></tr><tr><td>β₀</td><td>intercept</td><td>–</td><td>" + fmt(b0) + "</td></tr>";
+    betas.forEach((v, j) => t += `<tr><td>β${sub(j + 1)}</td><td>x${j + 1}</td><td>value at t−${S.w - j}</td><td>${fmt(v)}</td></tr>`);
+    $("coefTable").innerHTML = t;
+    $("optMse").textContent = fmt(optMse());
+    $("ratioVal").textContent = `${S.ratio} % / ${100 - S.ratio} %`; $("nTrain").textContent = nTr; $("nTest").textContent = nTe;
+    $("barTrain").style.width = (nTr / rows.length * 100) + "%"; $("barTest").style.width = (nTe / rows.length * 100) + "%";
+    draw(); drawLoss();
+  }
+
+  // ---------- training ----------
+  function stop() { model.playing = false; $("playBtn").textContent = "▶ Train"; }
+  function resetModel(msg) {
+    stop(); buildSamples(); buildTable();
+    model.w = Array(S.w).fill(0); model.b = 0; model.iter = 0; model.converged = false; model.diverged = false; model.trained = false;
+    model.history = [evalSet(trainRows()).mse]; const te = evalSet(testRows(), testPredictor()); model.histTest = [te ? te.mse : NaN];
+    if (msg) setStatus(msg);
+    refresh();
+  }
+  function pushHist() { model.history.push(evalSet(trainRows()).mse); const te = evalSet(testRows(), testPredictor()); model.histTest.push(te ? te.mse : NaN); }
+  function step() {
+    const { g, gb } = gradient();
+    for (let j = 0; j < g.length; j++) model.w[j] -= model.lr * g[j];
+    model.b -= model.lr * gb; model.iter++; model.trained = true; pushHist();
+    const mse = model.history[model.history.length - 1];
+    if (!isFinite(mse) || mse > 1e12) { model.diverged = true; stop(); setStatus("💥 Diverged — learning rate too large. Press <b>Reset</b> and lower α.", "err"); return false; }
+    if (Math.hypot(gb, ...g) < 1e-3 || model.iter >= 50000) { model.converged = true; stop(); done("Converged"); return false; }
+    return true;
+  }
+  function done(word) {
+    const a = evalSet(trainRows()), b = evalSet(testRows(), testPredictor());
+    setStatus(`✅ ${word}: Train MAE = ${fmt(a.mae, 2)}, <b>Test MAE = ${fmt(b.mae, 2)}</b> — see the red solid (train) and red dashed (test) prediction lines on the chart.`, "ok");
+  }
+  function frame() {
+    if (!model.playing) return;
+    let ok = true; for (let i = 0; i < +$("spSlider").value && ok; i++) ok = step();
+    if (ok) setStatus(`Training… train MSE = ${fmt(model.history[model.history.length - 1])}`);
+    refresh(); if (model.playing) requestAnimationFrame(frame);
+  }
+  $("playBtn").onclick = () => {
+    if (model.playing) { stop(); setStatus("Paused."); return; }
+    if (model.converged || model.diverged) resetModel();
+    model.playing = true; $("playBtn").textContent = "⏸ Pause"; requestAnimationFrame(frame);
+  };
+  $("stepBtn").onclick = () => { stop(); if (model.converged || model.diverged) resetModel(); if (step()) setStatus(`Step ${model.iter}.`); refresh(); };
+  $("solveBtn").onclick = () => { stop(); const s = solveExact(); model.w = s.w; model.b = s.b; model.iter++; model.trained = true; model.converged = true; pushHist(); refresh(); done("Solved with the normal equation"); };
+  $("resetBtn").onclick = () => resetModel("Model reset to zeros.");
+  $("lrSlider").oninput = e => { model.lr = +e.target.value; $("lrVal").textContent = model.lr.toFixed(3); };
+  $("spSlider").oninput = e => $("spVal").textContent = e.target.value;
+  $("logLoss").onchange = drawLoss;
+
+  // ---------- editing the series ----------
+  const kernel = d => Math.exp(-0.5 * (d / S.spread) ** 2);
+  const pos = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  function nearPoint(p) {
+    const t = clamp(Math.round(ix(p.x)), 0, N - 1);
+    return Math.abs(p.x - sx(t)) <= 14 && Math.abs(p.y - sy(S.s[t])) <= 20 ? t : null;
+  }
+  cv.addEventListener("pointerdown", e => {
+    const t = nearPoint(pos(e)); if (t == null) return;
+    cv.setPointerCapture(e.pointerId); stop();
+    drag = { t0: t, base: S.s.slice() }; draw();
+  });
+  cv.addEventListener("pointermove", e => {
+    const p = pos(e);
+    if (drag) {
+      const target = clamp(iy(p.y), YMIN + 1, YMAX - 1), dy = target - drag.base[drag.t0];
+      for (let i = 0; i < N; i++) S.s[i] = clamp(drag.base[i] + dy * kernel(Math.abs(i - drag.t0)), YMIN + 1, YMAX - 1);
+      resetModel("Data edited — the model was reset. Train again to see the new predictions.");
+    } else { hoverT = nearPoint(p); cv.style.cursor = hoverT != null ? "ns-resize" : "default"; draw(); }
+  });
+  const end = () => { drag = null; draw(); };
+  cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+  cv.addEventListener("pointerleave", () => { hoverT = null; if (!drag) draw(); });
+
+  // ---------- controls ----------
+  const box = $("patterns");
+  Object.entries(PATTERNS).forEach(([k, P]) => { const b = document.createElement("button"); b.textContent = P.label; b.dataset.k = k; b.onclick = () => selectPattern(k); box.appendChild(b); });
+  function selectPattern(k) {
+    S.key = k; S.noise = PATTERNS[k].noise; $("noiseSlider").value = S.noise; $("noiseVal").textContent = S.noise.toFixed(1);
+    document.querySelectorAll("#patterns button").forEach(b => b.classList.toggle("on", b.dataset.k === k));
+    $("patDesc").textContent = PATTERNS[k].desc; generate(); S.sel = null; resetModel("Pattern changed. Press <b>Train</b> or <b>Solve instantly</b>.");
+  }
+  $("noiseSlider").oninput = e => { S.noise = +e.target.value; $("noiseVal").textContent = S.noise.toFixed(1); makeBase(); resetModel(); };
+  $("regen").onclick = () => { generate(); resetModel("New random values generated."); };
+  $("resetEdits").onclick = () => { S.s = S.base.slice(); resetModel("Edits reset."); };
+  $("spreadSlider").oninput = e => { S.spread = +e.target.value; $("spreadVal").textContent = S.spread; };
+  ["showPred", "showActual"].forEach(id => $(id).onchange = draw);
+
+  function winText() { $("wVal").textContent = S.w; $("winDesc").innerHTML = `Each row uses the previous <b>${S.w}</b> value${S.w > 1 ? "s" : ""} (x₁ = oldest … x${sub(S.w)} = newest) to predict the next value <b>y</b>. Sliding the window by 1 gives <b>${N - S.w}</b> rows from the 200 points.`; }
+  $("wSlider").oninput = e => { S.w = +e.target.value; S.sel = null; winText(); resetModel(); };
+  function splitText() {
+    $("splitHint").innerHTML = S.mode === "chrono"
+      ? "<b>Chronological:</b> train on the first part of the timeline, test on the later part — like forecasting the real future. Recommended for time series."
+      : "<b>Random:</b> rows are shuffled into train/test. Neighbouring windows overlap, so the model effectively sees the future — test scores look better than they would in practice.";
+    $("resplit").disabled = S.mode !== "random";
+    $("modeChrono").classList.toggle("on", S.mode === "chrono"); $("modeRandom").classList.toggle("on", S.mode === "random");
+  }
+  $("modeChrono").onclick = () => { S.mode = "chrono"; splitText(); resetModel(); };
+  $("modeRandom").onclick = () => { S.mode = "random"; splitText(); resetModel(); };
+  $("ratioSlider").oninput = e => { S.ratio = +e.target.value; resetModel(); };
+  $("resplit").onclick = () => { for (let i = 0; i < N; i++) S.keys[i] = Math.random(); resetModel(); };
+
+  // ---------- init ----------
+  const layout = () => document.documentElement.style.setProperty("--hh", $("top").offsetHeight + "px");
+  window.addEventListener("resize", () => { layout(); resize(); });
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv);
+  layout(); winText(); splitText(); $("lrSlider").dispatchEvent(new Event("input"));
+  selectPattern("season"); resize();
+  window.addEventListener("load", () => { layout(); resize(); });
+})();
+</script>
+</body>
+</html>
