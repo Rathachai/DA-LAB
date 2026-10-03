@@ -1,7 +1,6 @@
 # Chapter 3 · Machine Learning and the Train–Test Split
 
-> **Series:** Linear Models for Engineers · Chapter 3 of 5
-> **Prerequisites:** [Chapter 1](en-01-linear-intro.md), [Chapter 2](en-02-feature-selection.md)
+> **Prerequisites:** fitting a line (or a multiple regression) to data and measuring its error
 > **Interactive labs:** [LM301](https://rathachai.github.io/DA-LAB/learnings/linear/lm301.html) · [LM302](https://rathachai.github.io/DA-LAB/learnings/linear/lm302.html)
 
 ---
@@ -28,7 +27,7 @@ In **machine learning (ML)**, you let the computer find the rule from data. You 
 Here are the key words.
 
 - **Model:** a formula that turns inputs into a prediction. Example: $\hat{y} = m x + c$.
-- **Training (fitting):** adjusting the model's numbers until its predictions match the known data. This is what you did in Chapter 1 when you fitted a line.
+- **Training (fitting):** adjusting the model's numbers until its predictions match the known data. For a straight line it means choosing the slope and the intercept.
 - **Supervised learning:** learning from examples where the correct answer is known. Each example is a pair $(x, y)$: an input $x$ and its measured answer $y$. The goal is a function $f$ such that $f(x)\approx y$ for *new* inputs.
 
 > **Engineering analogy.** Training a model is like calibrating an instrument. You feed it known reference values and tune it until its readings match. Prediction is using the calibrated instrument on an unknown sample.
@@ -40,7 +39,7 @@ Supervised problems come in two kinds, depending on what $y$ is.
 | **Regression** | a number | predict "how much?" | predict remaining life in hours |
 | **Classification** | a category | predict "which one?" | predict "healthy" vs. "faulty" |
 
-Linear regression, the subject of this series, is both a statistical tool and the simplest supervised ML model. Everything in this chapter applies equally to far more complex models.
+Linear regression is both a statistical tool and the simplest supervised ML model. Everything in this chapter applies equally to far more complex models.
 
 ```mermaid
 flowchart LR
@@ -114,7 +113,7 @@ flowchart LR
 - On new data, it is off by about 6.8 units, more than three times worse.
 - The gap (6.8 − 2.1 = 4.7) is the warning sign of overfitting. If both errors were near 6.8, the model would be underfitting instead.
 
-*In plain words:* the signature of overfitting is a **gap**. The model looks excellent on the data it trained on and noticeably worse on new data. Noise features (Chapter 2) and tiny training sets both widen the gap.
+*In plain words:* the signature of overfitting is a **gap**. The model looks excellent on the data it trained on and noticeably worse on new data. Noise features (inputs that carry no information) and tiny training sets both widen the gap.
 
 > **Key idea.** Never judge a model by its training error alone. Ask: "How does it do on data it has not seen?"
 
@@ -191,8 +190,8 @@ If you must compare many models or tune hyperparameters, use a separate **valida
 |-------------------|---------|
 | Feature contains the answer | using $y$ (or a transformed $y$) as an input |
 | Pre-processing on all data | scaling with statistics computed on the test set too |
-| Duplicated or near-duplicate rows across sets | many snapshots of the same machine in both train and test (see Chapter 5) |
-| The future leaks into the past | random splitting of time-series data (see Chapter 4) |
+| Duplicated or near-duplicate rows across sets | many snapshots of the same machine in both train and test |
+| The future leaks into the past | random splitting of time-series data |
 
 > **Common mistake.** A very high test score on the first try. Do not celebrate. Ask first: "Could the test data have helped the model in some hidden way?"
 
@@ -237,7 +236,7 @@ The variability is largest when the training set is small or the test set is sma
 
 ### LM302 · Train–Test Split with Feature Selection
 
-**[Open LM302](https://rathachai.github.io/DA-LAB/learnings/linear/lm302.html)** — the Chapter 2 data table with a train/test split.
+**[Open LM302](https://rathachai.github.io/DA-LAB/learnings/linear/lm302.html)** — the feature-selection data table (100 samples, `x1`–`x7`) with a train/test split.
 
 - Choose features (and `log`), pick a train ratio, and train.
 - Test rows are shaded **amber** in the table; test points are shown as diamonds in the charts, and train/test sets can be faded or highlighted independently.
@@ -279,8 +278,6 @@ The variability is largest when the training set is small or the test set is sma
 | Validation set | held-out data for choosing between designs | design-alternative bench test |
 | Random split | assigning rows to train or test by chance | random sampling for quality control |
 | Data leakage | test information secretly helps the model | giving students the exam in advance |
-
-**Previous:** [Chapter 2 · Feature Selection](en-02-feature-selection.md) · **Next:** [Chapter 4 · Time Series](en-04-time-series.md)
 
 ---
 

@@ -1,7 +1,6 @@
 # Chapter 4 · Time Series with Linear Models
 
-> **Series:** Linear Models for Engineers · Chapter 4 of 5
-> **Prerequisites:** [Chapters 1–3](en-01-linear-intro.md)
+> **Prerequisites:** basic regression (fitting a model to a table of inputs and a target) and the idea of a train/test split
 > **Interactive lab:** [LM401](https://rathachai.github.io/DA-LAB/learnings/linear/lm401.html)
 
 ---
@@ -61,7 +60,7 @@ For these signals, a linear model has nothing to learn beyond "use the last valu
 
 ## 4.2 Turning a Series into a Table: The Sliding Window
 
-Linear regression (Chapter 1) needs a table: several input columns (features) and one output column (target). A time series is not a table. This section shows how to build one.
+Linear regression needs a table: several input columns (features) and one output column (target). A time series is not a table. This section shows how to build one.
 
 **Engineering analogy.** A **moving-average (FIR) filter** looks at the last few samples through a window and produces one output. We do the same. We look at the last few samples through a window, but instead of averaging them, we use them to **predict the next sample**.
 
@@ -139,7 +138,7 @@ Six values and $w=3$ give $6-3=3$ rows. Neighbouring rows overlap heavily. The s
 
 > **In plain words (Step 4):** the same numbers appear in several rows, shifted by one place each time.
 
-Once the data are in this form, everything from Chapters 1–3 applies.
+Once the data are in this form, everything we know about regression on tables applies: fitting, measuring error and splitting into train and test.
 
 > **Key idea**
 > The sliding window turns "predict the future of a signal" into an ordinary regression problem: predict one column from several other columns.
@@ -179,7 +178,7 @@ The model predicts a series from **its own past**. Typical findings:
 
 ## 4.4 Splitting Time-Series Data
 
-Chapter 3 recommended random splits. For time series that advice must change.
+For ordinary tables a random train/test split is the usual choice. For time series that advice must change.
 
 A **chronological split** means training on the early part of the record and testing on the later part. This is how real forecasting works: you always predict the future from the past.
 
@@ -312,8 +311,6 @@ If your model cannot beat the baseline, as for a **random walk**, more modelling
 | Naïve baseline | trivial rule, e.g. "next = last" | hold the last value (zero-order hold) |
 | Chronological split | train on earlier data, test on later data | calibrate first, then validate on new runs |
 | Leakage | test information sneaking into training | answers leaking into the exam preparation |
-
-**Previous:** [Chapter 3 · Machine Learning and Train–Test Split](en-03-machine-learning.md) · **Next:** [Chapter 5 · Predictive Maintenance](en-05-predictive-maintainance.md)
 
 ---
 

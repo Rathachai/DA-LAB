@@ -10,7 +10,7 @@ A course in five topics for engineering students who are new to data science. Ea
 
 *Data tables (`id`, `X`, `y`), the line $\hat y = mx + c$, residuals, error metrics, gradient descent and hyperparameters, the mathematics of least squares.*
 
-* **Lecture** — [Chapter 1 · Introduction to Linear Models](en-01-linear-intro.md)
+* **Lecture** — [Chapter 1 · Introduction to Linear Models](en-01-linear-intro.md) · [ภาษาไทย](th-01-linear-intro.md)
 * **Labs**
   * [LM101 · Linear Regression Simulator](https://rathachai.github.io/DA-LAB/learnings/linear/lm101.html) — spray points, drag the line, watch residuals, train with gradient descent
 * **Data**
@@ -22,7 +22,7 @@ A course in five topics for engineering students who are new to data science. Ea
 
 *Pearson correlation, multiple regression, screening features, log transform, adjusted R², standardisation.*
 
-* **Lecture** — [Chapter 2 · Correlation and Feature Selection](en-02-feature-selection.md)
+* **Lecture** — [Chapter 2 · Correlation and Feature Selection](en-02-feature-selection.md) · [ภาษาไทย](th-02-feature-selection.md)
 * **Labs**
   * [CORR101 · Pearson Correlation Demo](https://rathachai.github.io/DA-LAB/learnings/linear/corr101.html) — preset or sprayed patterns; watch *r*, *r²* and the correlation line
   * [LM201 · Feature Selection for Linear Models](https://rathachai.github.io/DA-LAB/learnings/linear/lm201.html) — choose columns, apply `log`, compare models
@@ -36,7 +36,7 @@ A course in five topics for engineering students who are new to data science. Ea
 
 *Supervised learning, generalisation, overfitting, train and test sets, split ratio, data leakage, repeated splits.*
 
-* **Lecture** — [Chapter 3 · Machine Learning and Train–Test Split](en-03-machine-learning.md)
+* **Lecture** — [Chapter 3 · Machine Learning and Train–Test Split](en-03-machine-learning.md) · [ภาษาไทย](th-03-machine-learning.md)
 * **Labs**
   * [LM301 · Train–Test Split](https://rathachai.github.io/DA-LAB/learnings/linear/lm301.html) — split points 10–90 %, compare train and test error, run 50 random splits
   * [LM302 · Train–Test Split with Feature Selection](https://rathachai.github.io/DA-LAB/learnings/linear/lm302.html) — the LM201 table with an adjustable split
@@ -50,7 +50,7 @@ A course in five topics for engineering students who are new to data science. Ea
 
 *Trend, seasonality and noise, sliding windows, autoregressive models, chronological split, one-step vs. multi-step forecasts.*
 
-* **Lecture** — [Chapter 4 · Time Series with Linear Models](en-04-time-series.md)
+* **Lecture** — [Chapter 4 · Time Series with Linear Models](en-04-time-series.md) · [ภาษาไทย](th-04-time-series.md)
 * **Labs**
   * [LM401 · Time Series with Linear Models](https://rathachai.github.io/DA-LAB/learnings/linear/lm401.html) — ten 200-point patterns, drag the curve, window table, train/test forecast
 * **Data**
@@ -63,7 +63,7 @@ A course in five topics for engineering students who are new to data science. Ea
 
 *Remaining useful life (RUL), splitting by machine, degradation thresholds, residual alarms, cost-based decisions.*
 
-* **Lecture** — [Chapter 5 · Predictive Maintenance](en-05-predictive-maintainance.md)
+* **Lecture** — [Chapter 5 · Predictive Maintenance](en-05-predictive-maintainance.md) · [ภาษาไทย](th-05-predictive-maintainance.md)
 * **Labs**
   * [LM501 · Remaining Useful Life from Sensors](https://rathachai.github.io/DA-LAB/learnings/linear/lm501.html) — 60 machines, split by machine vs. by row
   * [LM502 · Degradation Curve and Maintenance Threshold](https://rathachai.github.io/DA-LAB/learnings/linear/lm502.html) — extrapolate a trend to a threshold and weigh the cost
@@ -124,6 +124,7 @@ learnings/
     ├── en-03-machine-learning.md      lecture 3
     ├── en-04-time-series.md           lecture 4
     ├── en-05-predictive-maintainance.md  lecture 5
+    ├── th-01 … th-05 (*.md)             lectures 1–5 in Thai
     ├── lm101.html  corr101.html  lm201.html  lm301.html  lm302.html
     ├── lm401.html  lm501.html  lm502.html  lm503.html  lm504.html
     └── data/                          CSV datasets

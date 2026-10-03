@@ -1,7 +1,6 @@
 # Chapter 2 · Correlation and Feature Selection
 
-> **Series:** Linear Models for Engineers · Chapter 2 of 5
-> **Prerequisites:** [Chapter 1 · Introduction to Linear Models](en-01-linear-intro.md)
+> **Prerequisites:** the idea of a straight-line model $\hat y = mx + c$, residuals and error measures
 > **Interactive labs:** [CORR101](https://rathachai.github.io/DA-LAB/learnings/linear/corr101.html) · [LM201](https://rathachai.github.io/DA-LAB/learnings/linear/lm201.html)
 
 ---
@@ -26,7 +25,7 @@ After completing this chapter, you will be able to:
 
 In machine learning, an input measurement is called a **feature**. A feature is simply one column of your data table: temperature, pressure, flow rate, motor current, and so on. The quantity you want to predict is called the **target** (written $y$).
 
-In Chapter 1 we used one feature. Real systems have many measurable inputs. A model with $p$ features $x_1, x_2, \dots, x_p$ is
+A simple model uses one feature. Real systems have many measurable inputs. A model with $p$ features $x_1, x_2, \dots, x_p$ is
 
 $$
 \hat y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_p x_p
@@ -51,7 +50,7 @@ $$
 \boldsymbol\beta = (X^\top X)^{-1} X^\top \mathbf y \quad\text{(normal equation)}
 $$
 
-**In plain words:** the second formula is a ready-made recipe that gives the best weights in one step, with no iteration. Here $X$ is the table of inputs, $\mathbf y$ is the list of measured targets, $\boldsymbol\beta$ is the list of weights, $X^\top$ is $X$ with rows and columns swapped (the transpose), and $(\cdot)^{-1}$ is the matrix inverse. It is the least-squares solution you met in Chapter 1: the weights that make the squared errors as small as possible.
+**In plain words:** the second formula is a ready-made recipe that gives the best weights in one step, with no iteration. Here $X$ is the table of inputs, $\mathbf y$ is the list of measured targets, $\boldsymbol\beta$ is the list of weights, $X^\top$ is $X$ with rows and columns swapped (the transpose), and $(\cdot)^{-1}$ is the matrix inverse. It is the least-squares solution: the weights that make the squared errors as small as possible.
 
 The weight $\beta_j$ is the change in $\hat y$ for a one-unit increase in $x_j$ **while all other features are held constant**. That last clause matters. When two inputs are related to each other, a weight can change, or even flip sign, depending on which other inputs are in the model.
 
@@ -278,7 +277,7 @@ Plain $R^2$ went *up* (0.900 to 0.901), while adjusted $R^2$ went *down* (0.888 
 
 > **Engineering analogy.** Think of the cost of instrumentation. Adding a sensor is only worth it if the improvement in accuracy justifies the extra cost. Adjusted $R^2$ builds that "cost" into the score.
 
-For stronger guarantees, evaluate on **held-out data** (data the model has never seen), which is the subject of Chapter 3.
+For stronger guarantees, evaluate on **held-out data** (data the model has never seen).
 
 ### Leakage and labels
 
@@ -387,8 +386,6 @@ The lab provides a table of 100 samples with columns `id`, `x1`…`x7` and `y`.
 | Adjusted $R^2$ | $R^2$ with a penalty for each extra feature | accuracy gain minus the cost of another sensor |
 | Standardising | convert to $z=(x-\bar x)/s$ | non-dimensionalisation, per-unit values |
 | Gradient descent | adjust weights in small steps to reduce error | iterative solver, like Newton or relaxation methods |
-
-**Previous:** [Chapter 1 · Introduction to Linear Models](en-01-linear-intro.md) · **Next:** [Chapter 3 · Machine Learning and Train–Test Split](en-03-machine-learning.md)
 
 ---
 

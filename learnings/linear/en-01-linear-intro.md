@@ -1,6 +1,5 @@
 # Chapter 1 · Introduction to Linear Models
 
-> **Series:** Linear Models for Engineers · Chapter 1 of 5
 > **Prerequisites:** high-school algebra, the idea of an average
 > **Interactive lab:** [LM101](https://rathachai.github.io/DA-LAB/learnings/linear/lm101.html)
 
@@ -97,7 +96,7 @@ flowchart LR
     M --> P["Prediction ŷ"]
 ```
 
-Three practical warnings, developed further in Chapter 2:
+Three practical warnings:
 
 1. **An `id` is not a feature.** A row number carries no physical information. If a model gives it a large weight, that is an accident.
 2. **`y` must never be an input.** Using the target as a feature makes the model "predict" an answer it was handed. This is called *data leakage*.
@@ -170,7 +169,7 @@ Two kinds of numbers control a machine-learning model, and it is important not t
 | In this chapter | $m$ and $c$ | learning rate $\alpha$, number of iterations, starting values of $m$ and $c$ |
 | Who sets them? | the **training algorithm**, by learning from data | the **engineer**, before training starts |
 | Where are they stored? | inside the finished model | not part of the model; they only steer the training |
-| How are they chosen? | by minimising the error | by experiments, experience and held-out data (Chapter 3) |
+| How are they chosen? | by minimising the error | by experiments, experience and held-out data |
 | Engineering comparison | calibration constants | solver settings: step size, tolerance, maximum iterations |
 
 **Training** means adjusting the parameters until the model fits the data. Hyperparameters are explained in detail in Section 1.5.3.
@@ -334,7 +333,7 @@ For the three-point example above, $\alpha = 0.1$ is stable, but $\alpha = 0.3$ 
 
 > **Common mistake.** Seeing the loss grow and training for more iterations. A growing loss means the step is too large. Reduce $\alpha$ instead.
 
-> **Choosing hyperparameters honestly.** Because hyperparameters are chosen by the engineer, they must be judged on data the model did not train on. This is the topic of Chapter 3.
+> **Choosing hyperparameters honestly.** Because hyperparameters are chosen by the engineer, they must be judged on data the model did not train on (a separate *test set* kept aside for that purpose).
 
 ---
 
@@ -372,7 +371,7 @@ $$
 
 **In plain words:** this is a set of linear equations, $A\boldsymbol\beta = \mathbf b$ with $A = X^\top X$ and $\mathbf b = X^\top \mathbf y$, that you solve for the unknown parameters, just like a circuit or a truss with several unknowns. The symbol $X^\top$ is the transpose of $X$ (rows and columns swapped). The symbol $^{-1}$ means the matrix inverse. The hat on $\hat{\boldsymbol\beta}$ means *estimated from data*.
 
-This is the result of Section 1.5.1 written for any number of features. It fails when two features are (almost) copies of each other. This is the *multicollinearity* problem of Chapter 2, and it is like a system of equations whose rows are not independent. The error surface is a single bowl, so the minimum is unique and gradient descent cannot be trapped in a false valley.
+This is the result of Section 1.5.1 written for any number of features. It fails when two features are (almost) copies of each other. This is the *multicollinearity* problem, and it is like a system of equations whose rows are not independent. The error surface is a single bowl, so the minimum is unique and gradient descent cannot be trapped in a false valley.
 
 ### 1.6.3 Geometry and variance
 
@@ -394,8 +393,8 @@ The formulas above always produce a line. Statements about how **reliable** the 
 
 | Assumption | Meaning | If violated |
 |------------|---------|-------------|
-| **Linearity** | $y$ is linear in the coefficients | curved residual patterns; add transforms (Chapter 2) |
-| **Independence** | errors do not depend on one another | common in time series (Chapter 4); uncertainty is understated |
+| **Linearity** | $y$ is linear in the coefficients | curved residual patterns; add transforms such as $\ln x$ |
+| **Independence** | errors do not depend on one another | common in time series; uncertainty is understated |
 | **Constant variance** | noise has the same spread everywhere | some regions are fitted too trustingly |
 | **No perfect collinearity** | no feature is an exact copy or combination of others | the normal equations have no unique solution |
 
@@ -403,7 +402,7 @@ The noise level is estimated by $\hat\sigma^2=\text{SSE}/(n-p-1)$, the average s
 
 **In plain words:** the slope is estimated more precisely with **less noise, more data, and a wider spread of $x$-values**. This matches experimental practice: to measure a slope well, test over a wide range of loads, not just near one value.
 
-Predictions far from $\bar x$ (*extrapolation*, predicting outside the range of your data) are the least certain, an idea used again in Chapter 5.
+Predictions far from $\bar x$ (*extrapolation*, predicting outside the range of your data) are the least certain.
 
 > **Common mistake.** Extrapolating. A line fitted from 10 to 50 kW says nothing reliable about 200 kW, where the motor may overheat non-linearly. Hooke's law also fails beyond the elastic limit.
 
@@ -466,8 +465,6 @@ How the lab maps to this chapter:
 | Outlier | a point far from the rest | a glitch or a bad reading |
 | R² | share of the variation the model explains | goodness of fit of a trendline |
 | Extrapolation | predicting outside the data range | using a law beyond its validity range |
-
-**Next:** [Chapter 2 · Correlation and Feature Selection](en-02-feature-selection.md)
 
 ---
 

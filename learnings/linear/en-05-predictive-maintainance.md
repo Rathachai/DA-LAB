@@ -1,7 +1,6 @@
 # Chapter 5 · Predictive Maintenance with Linear Models
 
-> **Series:** Linear Models for Engineers · Chapter 5 of 5
-> **Prerequisites:** [Chapters 1–4](en-01-linear-intro.md)
+> **Prerequisites:** basic regression, train/test splitting and the idea of a sliding-window forecast
 > **Interactive labs:** [LM501](https://rathachai.github.io/DA-LAB/learnings/linear/lm501.html) · [LM502](https://rathachai.github.io/DA-LAB/learnings/linear/lm502.html) · [LM503](https://rathachai.github.io/DA-LAB/learnings/linear/lm503.html) · [LM504](https://rathachai.github.io/DA-LAB/learnings/linear/lm504.html)
 
 ---
@@ -70,7 +69,7 @@ $$
 \widehat{\text{RUL}} = \beta_0 + \beta_1\,\text{vibration} + \beta_2\,\text{temperature} + \dots
 $$
 
-In plain words: *predicted remaining life equals a base value, plus a weight times the vibration reading, plus a weight times the temperature reading, and so on.* The hat on $\widehat{\text{RUL}}$ means "estimate". The $\beta_0$ is the base value (hours), and each $\beta_j$ is a weight in hours per unit of that sensor, found from past run-to-failure data. This is exactly the multiple regression of Chapter 2. A small numeric example (invented numbers): with $\beta_0=600$ h, $\beta_1=-80$ h per mm/s and a vibration of 4 mm/s, the model predicts $600-80\times 4=280$ h of remaining life.
+In plain words: *predicted remaining life equals a base value, plus a weight times the vibration reading, plus a weight times the temperature reading, and so on.* The hat on $\widehat{\text{RUL}}$ means "estimate". The $\beta_0$ is the base value (hours), and each $\beta_j$ is a weight in hours per unit of that sensor, found from past run-to-failure data. This is an ordinary multiple regression. A small numeric example (invented numbers): with $\beta_0=600$ h, $\beta_1=-80$ h per mm/s and a vibration of 4 mm/s, the model predicts $600-80\times 4=280$ h of remaining life.
 
 The same lessons apply:
 
@@ -229,7 +228,7 @@ Sometimes there is no clear degradation curve; instead we want to notice that *s
 
 The method:
 
-1. Train a forecasting model (Chapter 4) on the **healthy** part of a signal. It learns what "normal" looks like.
+1. Train a forecasting model on the **healthy** part of a signal. It learns what "normal" looks like.
 2. In operation, compare each prediction with reality. The **residual** is the prediction error: $e_t=y_t-\hat y_t$, where $y_t$ is the actual reading at time $t$ and $\hat y_t$ is the model's forecast (both in sensor units, e.g. mm/s).
 3. While the machine is healthy, residuals are small and random. When a fault develops, the model's picture of "normal" no longer matches, and residuals grow.
 
@@ -368,12 +367,12 @@ flowchart TD
     C --> E
 ```
 
-| Chapter concept | Where it appears in PdM |
+| Idea from regression and forecasting | Where it appears in predictive maintenance |
 |-----------------|-------------------------|
-| Regression, metrics (Ch. 1) | RUL error in hours, MAE, MAPE |
-| Feature selection, log transform (Ch. 2) | which sensors, wear-debris exponential growth |
-| Train–test split, leakage (Ch. 3) | split by machine, not by row |
-| Time series, sliding window (Ch. 4) | forecasting the healthy signal, residual monitoring |
+| Regression and error measures | RUL error in hours, MAE, MAPE |
+| Feature selection, log transform | which sensors, wear-debris exponential growth |
+| Train–test split, leakage | split by machine, not by row |
+| Time series, sliding window | forecasting the healthy signal, residual monitoring |
 
 ---
 
@@ -404,8 +403,6 @@ flowchart TD
 | Asymmetric cost | one error costs much more than the other | safety factor: oversizing is cheap, failure is not |
 | Expected cost | probability-weighted average cost of a decision | insurance and warranty-reserve calculation |
 | Bias / safety margin | deliberately shifting predictions to the safe side | design margin on load |
-
-**Previous:** [Chapter 4 · Time Series](en-04-time-series.md)
 
 ---
 
