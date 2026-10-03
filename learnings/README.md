@@ -2,7 +2,7 @@
 
 A collection of browser-based, zero-install simulators that teach core data-analytics and machine-learning concepts through hands-on experimentation. Every lab is a single self-contained HTML file (HTML + CSS + JavaScript), is responsive on desktop and mobile, and is written for engineering students who are new to data science.
 
-**Live site:** <https://rathachai.github.io/DA-LAB/learning/>
+**Live site:** <https://rathachai.github.io/DA-LAB/learnings/>
 
 ---
 
@@ -10,11 +10,11 @@ A collection of browser-based, zero-install simulators that teach core data-anal
 
 | Lab | Topic | Open |
 |-----|-------|------|
-| **LM101** | Linear regression fundamentals | [Launch](https://rathachai.github.io/DA-LAB/learning/linear/lm101.html) |
-| **CORR101** | Pearson correlation | [Launch](https://rathachai.github.io/DA-LAB/learning/linear/corr101.html) |
-| **LM201** | Feature selection for linear models | [Launch](https://rathachai.github.io/DA-LAB/learning/linear/lm201.html) |
-| **LM301** | Train–test split | [Launch](https://rathachai.github.io/DA-LAB/learning/linear/lm301.html) |
-| **LM302** | Train–test split with feature selection | [Launch](https://rathachai.github.io/DA-LAB/learning/linear/lm302.html) |
+| **LM101** | Linear regression fundamentals | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm101.html) |
+| **CORR101** | Pearson correlation | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/corr101.html) |
+| **LM201** | Feature selection for linear models | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm201.html) |
+| **LM301** | Train–test split | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm301.html) |
+| **LM302** | Train–test split with feature selection | [Launch](https://rathachai.github.io/DA-LAB/learnings/linear/lm302.html) |
 
 ### LM101 · Linear Regression Simulator
 Build intuition for how a straight line is fitted to data.
