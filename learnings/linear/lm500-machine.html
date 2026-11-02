@@ -79,6 +79,9 @@ th small{display:block;font-weight:400;color:var(--muted)}
 tbody tr:first-child td{background:#eff6ff}
 tr.failrow td{background:#fee2e2 !important;font-weight:700}
 td.rul,th.rul{color:#047857;font-weight:700}
+td.st{font-weight:700;text-align:center}
+td.st.healthy{color:#166534;background:#dcfce7}td.st.degrading{color:#92400e;background:#fef3c7}td.st.failed{color:#991b1b;background:#fee2e2}
+th.st{text-align:center}
 td:first-child,th:first-child{text-align:left}
 
 @media (max-width:900px){.top{grid-template-columns:1fr}.credit{display:none}}
@@ -185,7 +188,7 @@ td:first-child,th:first-child{text-align:left}
       <div class="bar" title="time until the next reading"><i id="prog"></i></div>
       <div class="btns">
         <button class="warn" id="bDrift" disabled style="grid-column:1/-1">⚠ Make sensors drift (fails in 30 circles)</button>
-        <button class="good" id="bRul" disabled>Generate RUL</button>
+        <button class="good" id="bRul" disabled>Generate RUL + status</button>
         <button id="bReset">↺ Reset</button>
         <button id="bCsv" disabled style="grid-column:1/-1">⬇ Download latest 100 rows (CSV)</button>
       </div>
@@ -196,7 +199,7 @@ td:first-child,th:first-child{text-align:left}
       <ol class="steps" id="steps">
         <li>The machine starts running: the first 80 readings load quickly, then one new reading arrives every second.</li>
         <li>Press <b>Make sensors drift</b>: the sensors go bad one after another, the machine breaks after 30 more readings, and collection stops.</li>
-        <li>Press <b>Generate RUL</b> to add the target column.</li>
+        <li>Press <b>Generate RUL + status</b> to add two target columns: <code>RUL</code> (regression) and <code>rul_status</code> (classification).</li>
       </ol>
     </section>
   </div>
@@ -210,7 +213,7 @@ td:first-child,th:first-child{text-align:left}
   <section class="card">
     <h2>Data table <small id="tblNote">latest 100 readings, newest on top</small></h2>
     <div class="tablewrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
-    <p class="note">RUL (remaining useful life) = time from this reading until the failure. The failed reading has RUL = 0. The CSV button downloads the same latest 100 readings.</p>
+    <p class="note">RUL (remaining useful life) = time from this reading until the failure. The failed reading has RUL = 0. <b>rul_status</b> turns RUL into a class: <code>failed</code> (RUL &lt; 5), <code>degrading</code> (5 ≤ RUL ≤ 25), <code>healthy</code> (RUL &gt; 25). The CSV button downloads the same latest 100 readings.</p>
   </section>
 </main>
 
@@ -224,9 +227,12 @@ td:first-child,th:first-child{text-align:left}
     {k:"s4", name:"Current",     unit:"A",    base:12.0, sd:0.45,  amp:+2.5, swing:6.0, on:0.20, lo:4,    hi:24,   dec:2, col:"#d97706"},
     {k:"s5", name:"Speed",       unit:"rpm",  base:1500, sd:10,   amp:-190, on:0.47, lo:1250, hi:1560, dec:0, col:"#16a34a"}
   ];
-  const STEP_S = 1, PREFILL = 80, WIN = 50, TBL_WIN = 100, DRIFT_N = 30;   // WIN = circles in the graphs, TBL_WIN = rows in the table
+  const STEP_S = 1, PREFILL = 80, WIN = 50, TBL_WIN = 100, DRIFT_N = 30, FAIL_T = 5, DEGR_T = 25;   // WIN = circles in the graphs, TBL_WIN = rows in the table
   let machineNo = 1, machineId = "M001", swingPhase = 0;
   let rows, state, driftStart, failIdx, hasRul, timer, tickMs, lastTick, rpm, shake;
+
+  // rul_status: failed if RUL < 5, degrading if 5 <= RUL <= 25, healthy if RUL > 25
+  const statusOf = rul => rul < FAIL_T ? "failed" : rul <= DEGR_T ? "degrading" : "healthy";
 
   function randn(){ let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
 
@@ -275,11 +281,11 @@ td:first-child,th:first-child{text-align:left}
 
   // ---------- table ----------
   function drawTable(){
-    const head = "<tr><th>machine</th><th>id</th><th>t<small>s</small></th>" + SENS.map(s=>`<th>${s.k}<small>${s.name} (${s.unit})</small></th>`).join("") + (hasRul?'<th class="rul">RUL<small>s</small></th>':"") + "</tr>";
+    const head = "<tr><th>machine</th><th>id</th><th>t<small>s</small></th>" + SENS.map(s=>`<th>${s.k}<small>${s.name} (${s.unit})</small></th>`).join("") + (hasRul?'<th class="rul">RUL<small>s</small></th><th class="st">rul_status<small>class</small></th>':"") + "</tr>";
     $("tbl").tHead.innerHTML = head;
     const shown = rows.slice(-TBL_WIN).reverse();
     $("tbl").tBodies[0].innerHTML = shown.map(r =>
-      `<tr${r.fail?' class="failrow"':''}><td>${machineId}</td><td>${r.id}</td><td>${r.t}</td>` + SENS.map(s=>`<td>${r[s.k].toFixed(2)}</td>`).join("") + (hasRul?`<td class="rul">${r.rul}</td>`:"") + "</tr>").join("");
+      `<tr${r.fail?' class="failrow"':''}><td>${machineId}</td><td>${r.id}</td><td>${r.t}</td>` + SENS.map(s=>`<td>${r[s.k].toFixed(2)}</td>`).join("") + (hasRul?`<td class="rul">${r.rul}</td><td class="st ${r.rul_status}">${r.rul_status}</td>`:"") + "</tr>").join("");
     $("tblNote").textContent = rows.length > TBL_WIN ? `latest ${TBL_WIN} of ${rows.length} readings, newest on top` : `${rows.length} reading${rows.length===1?"":"s"}, newest on top`;
   }
 
@@ -358,12 +364,12 @@ td:first-child,th:first-child{text-align:left}
   }
 
   $("bDrift").onclick = () => { if (state !== "run") return; driftStart = rows.length - 1; state = "drift"; refresh(); };
-  $("bRul").onclick = () => { rows.forEach(r => r.rul = (rows[failIdx].t - r.t)); hasRul = true; refresh(); };
+  $("bRul").onclick = () => { rows.forEach(r => { r.rul = rows[failIdx].t - r.t; r.rul_status = statusOf(r.rul); }); hasRul = true; refresh(); };
   $("bReset").onclick = reset;
   $("speed").onchange = () => { if (state === "run" || state === "drift") { stop(); startTimer(); } };
   $("bCsv").onclick = () => {
-    const head = ["machine","id","t_s"].concat(SENS.map(s=>s.k)).concat(hasRul?["RUL_s"]:[]);
-    const lines = [head.join(",")].concat(rows.slice(-TBL_WIN).map(r => [machineId, r.id, r.t].concat(SENS.map(s=>r[s.k].toFixed(2))).concat(hasRul?[r.rul]:[]).join(",")));
+    const head = ["machine","id","t_s"].concat(SENS.map(s=>s.k)).concat(hasRul?["RUL_s","rul_status"]:[]);
+    const lines = [head.join(",")].concat(rows.slice(-TBL_WIN).map(r => [machineId, r.id, r.t].concat(SENS.map(s=>r[s.k].toFixed(2))).concat(hasRul?[r.rul,r.rul_status]:[]).join(",")));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([lines.join("\n")+"\n"], {type:"text/csv"}));
     a.download = "M-" + String(machineNo).padStart(3,"0") + (hasRul ? "-with-rul" : "-without-rul") + ".csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
